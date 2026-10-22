@@ -1,0 +1,7 @@
+# requirements-dev.txt — everything CI needs: the app's dependencies plus the tools.
+# CI runs:  pip install -r requirements-dev.txt
+# The Docker image installs only requirements.txt.
+-r requirements.txt
+pytest==9.1.1
+httpx2==2.13.1   # used by FastAPI TestClient
+ruff==0.17.0
