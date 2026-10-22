@@ -1,0 +1,14 @@
+# pyproject.toml — tool configuration only (this is not a package).
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+# E/F = pycodestyle errors + pyflakes, I = import order, B = likely bugs (flake8-bugbear)
+select = ["E", "F", "I", "B"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
+addopts = "-ra"
