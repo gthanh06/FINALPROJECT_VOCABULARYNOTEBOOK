@@ -1,0 +1,32 @@
+# compose.yaml — run the whole app locally with one command:
+#   docker compose up --build
+# then open http://localhost:8000
+# Data is kept in the "pgdata" volume; `docker compose down -v` wipes it.
+services:
+  db:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_USER: vocab
+      POSTGRES_PASSWORD: vocab
+      POSTGRES_DB: vocab
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vocab -d vocab"]
+      interval: 2s
+      timeout: 3s
+      retries: 15
+
+  app:
+    build: .
+    environment:
+      DATABASE_URL: postgresql://vocab:vocab@db:5432/vocab
+      APP_ENV: development
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

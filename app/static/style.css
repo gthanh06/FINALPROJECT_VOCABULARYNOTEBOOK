@@ -1,0 +1,96 @@
+/* style.css — Vocabulary Notebook UI. Light/dark follow the system setting. */
+:root {
+  --bg: #f6f7f9;
+  --surface: #ffffff;
+  --text: #1c2430;
+  --muted: #667085;
+  --border: #dfe3ea;
+  --primary: #2f6fed;
+  --primary-text: #ffffff;
+  --success: #16a34a;
+  --danger: #dc2626;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg: #12161c;
+    --surface: #1b2129;
+    --text: #e6e9ee;
+    --muted: #98a2b3;
+    --border: #2c3440;
+    --primary: #5b8ef7;
+  }
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--bg);
+  color: var(--text);
+  font: 16px/1.5 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+}
+a { color: var(--primary); text-decoration: none; }
+
+.topbar {
+  display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 8px;
+  padding: 12px 16px; background: var(--surface); border-bottom: 1px solid var(--border);
+}
+.brand { font-weight: 700; color: var(--text); }
+.topbar nav { display: flex; gap: 4px; }
+.topbar nav a { padding: 6px 12px; border-radius: 8px; color: var(--muted); }
+.topbar nav a.active { background: var(--bg); color: var(--text); font-weight: 600; }
+
+main { max-width: 760px; margin: 0 auto; padding: 16px; }
+h1 { font-size: 1.5rem; margin: 8px 0 16px; }
+.muted { color: var(--muted); }
+.row { display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
+.row.end { justify-content: flex-end; }
+.row.center { justify-content: center; }
+.card {
+  background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px;
+}
+
+.btn {
+  display: inline-block; padding: 8px 16px; border-radius: 8px; border: 1px solid var(--border);
+  background: var(--surface); color: var(--text); font: inherit; cursor: pointer;
+}
+.btn:hover { filter: brightness(0.96); }
+.btn.primary { background: var(--primary); border-color: var(--primary); color: var(--primary-text); }
+.btn.success { background: var(--success); border-color: var(--success); color: #fff; }
+.btn.danger { background: var(--danger); border-color: var(--danger); color: #fff; }
+.btn.small { padding: 4px 10px; font-size: 0.875rem; }
+.btn:disabled { opacity: 0.6; cursor: wait; }
+
+.search { display: flex; gap: 8px; margin-bottom: 8px; }
+.search input { flex: 1; }
+input, select, textarea {
+  width: 100%; padding: 8px 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: var(--surface); color: var(--text); font: inherit;
+}
+textarea { resize: vertical; }
+
+.words { list-style: none; padding: 0; margin: 0; display: grid; gap: 8px; }
+.word-item { display: flex; justify-content: space-between; gap: 12px; align-items: flex-start; }
+.word-item .w { font-weight: 700; font-size: 1.1rem; }
+.word-item .pos { color: var(--muted); font-size: 0.875rem; margin-left: 6px; }
+.word-item .ex { color: var(--muted); font-style: italic; margin: 4px 0 0; }
+.word-item .actions { display: flex; gap: 6px; flex-shrink: 0; }
+
+.form { display: grid; gap: 12px; }
+.form label { display: grid; gap: 4px; font-weight: 600; font-size: 0.95rem; }
+.error { color: var(--danger); margin: 0; }
+
+.flash { text-align: center; padding: 32px 16px; display: grid; gap: 12px; }
+.flash .pos { color: var(--muted); margin: 0; }
+.flash-word { font-size: 2.25rem; font-weight: 700; margin: 0; word-break: break-word; }
+.flash-meaning { font-size: 1.4rem; margin: 0 0 8px; }
+.flash .example { font-style: italic; color: var(--muted); margin: 0; }
+.flash .note { margin: 4px 0 0; }
+.done { text-align: center; }
+.big { font-size: 1.5rem; margin: 0 0 8px; }
+.empty { text-align: center; color: var(--muted); padding: 32px 16px; }
+
+#toast {
+  position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%);
+  background: var(--text); color: var(--bg); padding: 10px 16px; border-radius: 8px; max-width: calc(100% - 32px);
+}
