@@ -1,0 +1,17 @@
+# render.yaml — Render Blueprint: one Docker web service, HTTPS is provided by Render.
+# DATABASE_URL (Supabase connection string) is a secret: sync: false means Render
+# asks for it in the dashboard and it never lives in Git.
+services:
+  - type: web
+    name: vocab-notebook
+    runtime: docker
+    plan: free
+    region: singapore
+    branch: main
+    healthCheckPath: /health
+    autoDeploy: true
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_ENV
+        value: production

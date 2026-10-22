@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Sổ tay từ vựng</title>
+  <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#/">📒 Sổ tay từ vựng</a>
+    <nav>
+      <a href="#/" data-nav="list">Danh sách</a>
+      <a href="#/new" data-nav="new">Thêm từ</a>
+      <a href="#/review" data-nav="review">Ôn tập</a>
+    </nav>
+  </header>
+
+  <main id="view" aria-live="polite"></main>
+  <div id="toast" role="status" hidden></div>
+
+  <!-- Danh sách -->
+  <template id="tpl-list">
+    <section>
+      <div class="row">
+        <h1>Danh sách từ</h1>
+        <a class="btn primary" href="#/new">+ Thêm từ</a>
+      </div>
+      <form class="search" data-search>
+        <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm">
+        <button class="btn" type="submit">Tìm</button>
+      </form>
+      <p class="muted" data-count></p>
+      <ul class="words" data-words></ul>
+    </section>
+  </template>
+
+  <!-- Thêm / Sửa (dùng chung một form) -->
+  <template id="tpl-form">
+    <section>
+      <h1 data-title></h1>
+      <form class="card form" data-form>
+        <label>Từ tiếng Anh *
+          <input name="word" required maxlength="100" autocomplete="off">
+        </label>
+        <label>Nghĩa tiếng Việt *
+          <input name="meaning_vi" required autocomplete="off">
+        </label>
+        <label>Loại từ
+          <select name="part_of_speech">
+            <option value="">— chọn —</option>
+            <option value="noun">noun (danh từ)</option>
+            <option value="verb">verb (động từ)</option>
+            <option value="adjective">adjective (tính từ)</option>
+            <option value="adverb">adverb (trạng từ)</option>
+            <option value="preposition">preposition (giới từ)</option>
+            <option value="conjunction">conjunction (liên từ)</option>
+            <option value="pronoun">pronoun (đại từ)</option>
+            <option value="phrase">phrase (cụm từ)</option>
+          </select>
+        </label>
+        <label>Câu ví dụ
+          <textarea name="example" rows="2"></textarea>
+        </label>
+        <label>Ghi chú cách dùng
+          <textarea name="usage_note" rows="3"></textarea>
+        </label>
+        <p class="error" data-error hidden></p>
+        <div class="row end">
+          <a class="btn" href="#/">Huỷ</a>
+          <button class="btn primary" type="submit" data-submit>Lưu</button>
+        </div>
+      </form>
+    </section>
+  </template>
+
+  <!-- Ôn tập -->
+  <template id="tpl-review">
+    <section>
+      <h1>Ôn tập</h1>
+      <p class="muted" data-progress></p>
+      <div class="card flash" data-card>
+        <p class="pos" data-pos></p>
+        <p class="flash-word" data-word></p>
+        <div class="answer" data-answer hidden>
+          <p class="flash-meaning" data-meaning></p>
+          <p class="example" data-example></p>
+          <p class="note" data-note></p>
+        </div>
+        <div class="row center" data-actions-show>
+          <button class="btn primary" data-show>Xem nghĩa</button>
+        </div>
+        <div class="row center" data-actions-grade hidden>
+          <button class="btn danger" data-grade="forgot">Quên</button>
+          <button class="btn success" data-grade="remembered">Nhớ</button>
+        </div>
+      </div>
+      <div class="card done" data-done hidden>
+        <p class="big">🎉 Xong lượt ôn!</p>
+        <p data-summary></p>
+        <div class="row center">
+          <button class="btn primary" data-again>Ôn lại</button>
+          <a class="btn" href="#/">Về danh sách</a>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>
