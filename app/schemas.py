@@ -12,6 +12,7 @@ class WordCreate(BaseModel):
     # Left empty when the AI is busy; the user can fill them in later.
     example: str | None = None
     usage_note: str | None = None
+    topic_id: int | None = None  # None = "Chưa phân loại"
 
 
 class WordUpdate(BaseModel):
@@ -21,11 +22,20 @@ class WordUpdate(BaseModel):
     part_of_speech: str | None = None
     example: str | None = None
     usage_note: str | None = None
+    topic_id: int | None = None
 
 
 class Word(WordCreate):
     id: int
     created_at: datetime
+
+
+class Topic(BaseModel):
+    id: int
+    slug: str
+    name: str
+    icon: str
+    word_count: int  # how many words the logged-in user has in this topic
 
 
 ReviewResult = Literal["remembered", "forgot"]

@@ -7,11 +7,15 @@ from datetime import UTC, datetime, timedelta
 
 import psycopg
 
-UPDATABLE = ("word", "meaning_vi", "part_of_speech", "example", "usage_note")
+UPDATABLE = ("word", "meaning_vi", "part_of_speech", "example", "usage_note", "topic_id")
 
 
 class DuplicateWord(Exception):
     """The word is already in the notebook (unique index on lower(word))."""
+
+
+class UnknownTopic(Exception):
+    """topic_id does not match any row in topics (foreign key)."""
 
 
 class DuplicateEmail(Exception):
@@ -43,13 +47,16 @@ class WordRepository:
     def create_word(self, data: dict) -> dict:
         try:
             return self.conn.execute(
-                "INSERT INTO words (user_id, word, meaning_vi, part_of_speech, example, usage_note)"
+                "INSERT INTO words"
+                " (user_id, word, meaning_vi, part_of_speech, example, usage_note, topic_id)"
                 " VALUES (%(user_id)s, %(word)s, %(meaning_vi)s, %(part_of_speech)s, %(example)s,"
-                " %(usage_note)s) RETURNING *",
+                " %(usage_note)s, %(topic_id)s) RETURNING *",
                 {**data, "user_id": self.user_id},
             ).fetchone()
         except psycopg.errors.UniqueViolation as err:
             raise DuplicateWord from err
+        except psycopg.errors.ForeignKeyViolation as err:
+            raise UnknownTopic from err
 
     def update_word(self, word_id: int, fields: dict) -> dict | None:
         fields = {k: v for k, v in fields.items() if k in UPDATABLE}
@@ -64,6 +71,17 @@ class WordRepository:
             ).fetchone()
         except psycopg.errors.UniqueViolation as err:
             raise DuplicateWord from err
+        except psycopg.errors.ForeignKeyViolation as err:
+            raise UnknownTopic from err
+
+    def list_topics(self) -> list[dict]:
+        # Every topic, with how many of this user's words are in it (0 included).
+        return self.conn.execute(
+            "SELECT t.id, t.slug, t.name, t.icon, count(w.id) AS word_count"
+            " FROM topics t LEFT JOIN words w ON w.topic_id = t.id AND w.user_id = %s"
+            " GROUP BY t.id ORDER BY t.position",
+            (self.user_id,),
+        ).fetchall()
 
     def delete_word(self, word_id: int) -> bool:
         cur = self.conn.execute(
@@ -110,8 +128,9 @@ class UserRepository:
     def copy_starter_words(self, user_id: int) -> int:
         # The seeded words (user_id NULL) become the new user's first notebook.
         cur = self.conn.execute(
-            "INSERT INTO words (user_id, word, meaning_vi, part_of_speech, example, usage_note)"
-            " SELECT %s, word, meaning_vi, part_of_speech, example, usage_note"
+            "INSERT INTO words"
+            " (user_id, word, meaning_vi, part_of_speech, example, usage_note, topic_id)"
+            " SELECT %s, word, meaning_vi, part_of_speech, example, usage_note, topic_id"
             " FROM words WHERE user_id IS NULL ORDER BY id",
             (user_id,),
         )

@@ -1,9 +1,9 @@
 // app.js — hash router + pages for the Vocabulary Notebook UI.
 //   #/login       log in            #/register    create an account
-//   #/            list (search, filter by part of speech, sort, edit, delete)
+//   #/            list (topics, search, filter by part of speech, sort, edit, delete)
 //   #/new         add a word
 //   #/edit/{id}   edit a word
-//   #/review      typed review, English -> Vietnamese or back; logs remembered / forgot
+//   #/review      typed review by topic or random, English <-> Vietnamese; logs results
 // Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
 // The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
 "use strict";
@@ -191,45 +191,98 @@ function authPage(mode) {
   });
 }
 
+// ---------- Chủ đề ----------
+// The topic list is the same for everyone and rarely changes: fetched once per visit.
+let topicsCache = null;
+async function loadTopics() {
+  if (!topicsCache) topicsCache = await api("/topics");
+  return topicsCache;
+}
+const topicBySlug = (slug) => topicsCache?.find((t) => t.slug === slug);
+const topicById = (id) => topicsCache?.find((t) => t.id === id);
+
+// Fills a <select> with the topics. With allLabel the values are slugs (review page),
+// otherwise topic ids (word form). With counts, empty topics are disabled.
+function topicOptions(select, { allLabel, counts } = {}) {
+  const opts = [];
+  if (allLabel) opts.push(el("option", { value: "", textContent: allLabel }));
+  for (const t of topicsCache) {
+    const n = counts ? counts[t.id] || 0 : null;
+    const opt = el("option", {
+      value: allLabel ? t.slug : t.id,
+      textContent: `${t.icon} ${t.name}` + (counts ? ` (${n})` : ""),
+    });
+    if (counts && !n) opt.disabled = true;
+    opts.push(opt);
+  }
+  select.replaceChildren(...opts);
+}
+
 // ---------- Danh sách ----------
-async function listPage(query = "") {
+async function listPage(params) {
   const root = mount("tpl-list");
   const form = $(root, "data-search");
   const list = $(root, "data-words");
   const count = $(root, "data-count");
   const more = $(root, "data-more");
   const sort = $(root, "data-sort");
-  const chips = $(root, "data-chips");
-  form.q.value = query;
+  const posSelect = $(root, "data-pos");
+  const tiles = $(root, "data-topics");
+  const reviewTopic = $(root, "data-review-topic");
+  form.q.value = params.get("q") || "";
   list.replaceChildren(...Array.from({ length: 6 }, () => el("li", { className: "card skeleton" })));
 
-  let words;
+  let words, topics;
   try {
-    words = await api("/words");
+    [words, topics] = await Promise.all([api("/words"), loadTopics()]);
   } catch (err) {
     return showError(list, err);
   }
   renderStats($(root, "data-stats"), words);
 
-  const state = { q: query, pos: "", sort: "new", shown: PAGE_SIZE };
+  const state = {
+    q: form.q.value, topic: params.get("topic") || "", pos: "", sort: "new", shown: PAGE_SIZE,
+  };
 
-  // One chip per part of speech present in the notebook.
-  const counts = {};
-  for (const w of words) counts[w.part_of_speech || ""] = (counts[w.part_of_speech || ""] || 0) + 1;
-  const chipDefs = [["", "Tất cả", words.length]].concat(
-    Object.keys(POS_LABELS).filter((p) => counts[p]).map((p) => [p, POS_LABELS[p], counts[p]]),
-  );
-  for (const [pos, label, n] of chipDefs) {
-    const chip = el("button", { className: "chip", type: "button", textContent: label },
-      el("span", { className: "n", textContent: n }));
-    chip.dataset.pos = pos;
-    chip.addEventListener("click", () => { state.pos = pos; state.shown = PAGE_SIZE; render(); });
-    chips.append(chip);
+  // Part of speech: only the ones present in the notebook.
+  const posCounts = {};
+  for (const w of words) posCounts[w.part_of_speech] = (posCounts[w.part_of_speech] || 0) + 1;
+  posSelect.append(el("option", { value: "", textContent: "Mọi loại từ" }),
+    ...Object.keys(POS_LABELS).filter((p) => posCounts[p])
+      .map((p) => el("option", { value: p, textContent: `${POS_LABELS[p]} (${posCounts[p]})` })));
+
+  function renderTiles() {
+    const byTopic = {};
+    for (const w of words) byTopic[w.topic_id ?? ""] = (byTopic[w.topic_id ?? ""] || 0) + 1;
+    const defs = [{ slug: "", icon: "📚", name: "Tất cả", n: words.length }]
+      .concat(topics.map((t) => ({ slug: t.slug, icon: t.icon, name: t.name, n: byTopic[t.id] || 0 })));
+    if (byTopic[""]) defs.push({ slug: "none", icon: "🗂️", name: "Chưa phân loại", n: byTopic[""] });
+    tiles.replaceChildren(...defs.map((d) => {
+      const tile = el("button", { type: "button", className: "topic-tile" },
+        el("span", { className: "icon", textContent: d.icon }),
+        el("span", { className: "name", textContent: d.name }),
+        el("span", { className: "n", textContent: `${d.n} từ` }));
+      tile.classList.toggle("active", d.slug === state.topic);
+      tile.setAttribute("aria-pressed", d.slug === state.topic);
+      tile.addEventListener("click", () => {
+        state.topic = d.slug;
+        state.shown = PAGE_SIZE;
+        syncUrl();
+        render();
+      });
+      return tile;
+    }));
+  }
+
+  function inTopic(w) {
+    if (!state.topic) return true;
+    if (state.topic === "none") return w.topic_id == null;
+    return topicBySlug(state.topic)?.id === w.topic_id;
   }
 
   function filtered() {
     const q = state.q.toLowerCase();
-    const out = words.filter((w) =>
+    const out = words.filter((w) => inTopic(w) &&
       (!state.pos || w.part_of_speech === state.pos) &&
       (!q || w.word.toLowerCase().includes(q) || w.meaning_vi.toLowerCase().includes(q)));
     if (state.sort === "az") out.sort((a, b) => a.word.localeCompare(b.word));
@@ -238,9 +291,15 @@ async function listPage(query = "") {
   }
 
   function render() {
-    for (const c of chips.children) c.classList.toggle("active", c.dataset.pos === state.pos);
+    renderTiles();
+    const topic = topicBySlug(state.topic);
+    reviewTopic.hidden = !topic;
+    if (topic) {
+      reviewTopic.href = `#/review?topic=${topic.slug}`;
+      reviewTopic.textContent = `Ôn chủ đề ${topic.icon} ${topic.name} →`;
+    }
     const items = filtered();
-    count.textContent = state.q || state.pos
+    count.textContent = state.q || state.pos || state.topic
       ? `${items.length} / ${words.length} từ phù hợp`
       : `${words.length} từ trong sổ`;
     if (items.length === 0) {
@@ -259,19 +318,32 @@ async function listPage(query = "") {
     more.textContent = `Xem thêm (${items.length - state.shown})`;
   }
 
-  // Live search; the query is kept in the URL without re-running the router.
+  // Search text and topic are kept in the URL without re-running the router.
+  function syncUrl() {
+    const qs = new URLSearchParams();
+    if (state.q) qs.set("q", state.q);
+    if (state.topic) qs.set("topic", state.topic);
+    const query = qs.toString();
+    history.replaceState(null, "", "#/" + (query ? "?" + query : ""));
+  }
+
   let typing;
   form.q.addEventListener("input", () => {
     clearTimeout(typing);
     typing = setTimeout(() => {
       state.q = form.q.value.trim();
       state.shown = PAGE_SIZE;
-      history.replaceState(null, "", state.q ? "#/?q=" + encodeURIComponent(state.q) : "#/");
+      syncUrl();
       render();
     }, 150);
   });
   form.addEventListener("submit", (e) => e.preventDefault());
   sort.addEventListener("change", () => { state.sort = sort.value; render(); });
+  posSelect.addEventListener("change", () => {
+    state.pos = posSelect.value;
+    state.shown = PAGE_SIZE;
+    render();
+  });
   more.addEventListener("click", () => { state.shown += PAGE_SIZE; render(); });
   render();
 }
@@ -282,7 +354,7 @@ function renderStats(box, words) {
     ["Tổng số từ", words.length],
     ["Thêm trong 7 ngày", words.filter((w) => new Date(w.created_at) > weekAgo).length],
     ["Có câu ví dụ", words.filter((w) => w.example).length],
-    ["Cụm từ & thành ngữ", words.filter((w) => w.part_of_speech === "phrase").length],
+    ["Chủ đề đang học", new Set(words.map((w) => w.topic_id).filter((id) => id != null)).size],
   ];
   box.replaceChildren(...stats.map(([label, value]) => el("div", { className: "card stat" },
     el("div", { className: "label", textContent: label }),
@@ -317,6 +389,12 @@ function wordItem(w, onDeleted) {
   );
   if (w.example) li.append(el("p", { className: "ex", textContent: w.example }));
   if (w.usage_note) li.append(el("p", { className: "note", textContent: w.usage_note }));
+  const topic = topicById(w.topic_id);
+  if (topic) {
+    li.append(el("a", {
+      className: "topic-tag", href: `#/?topic=${topic.slug}`, textContent: `${topic.icon} ${topic.name}`,
+    }));
+  }
   return li;
 }
 
@@ -326,11 +404,19 @@ async function formPage(id) {
   const form = $(root, "data-form");
   const error = $(root, "data-error");
   $(root, "data-title").textContent = id ? "Sửa từ" : "Thêm từ mới";
+  try {
+    await loadTopics();
+  } catch (err) {
+    return showError(view, err);
+  }
+  topicOptions(form.topic_id);
+  form.topic_id.prepend(el("option", { value: "", textContent: "— Chưa phân loại —" }));
+  form.topic_id.value = "";
 
   if (id) {
     try {
       const w = await api(`/words/${id}`);
-      for (const k of ["word", "meaning_vi", "part_of_speech", "example", "usage_note"]) {
+      for (const k of ["word", "meaning_vi", "part_of_speech", "example", "usage_note", "topic_id"]) {
         form[k].value = w[k] ?? "";
       }
     } catch (err) {
@@ -347,6 +433,7 @@ async function formPage(id) {
       data[k] = data[k].trim();
       if (data[k] === "") data[k] = null; // optional fields are stored as NULL
     }
+    if (data.topic_id) data.topic_id = Number(data.topic_id);
     const submit = $(root, "data-submit");
     submit.disabled = true;
     try {
@@ -395,7 +482,7 @@ const VERDICTS = {
   wrong: ["bad", "✗ Chưa đúng."],
 };
 
-async function reviewPage() {
+async function reviewPage(topicFromUrl) {
   const root = mount("tpl-review");
   const card = $(root, "data-card");
   const size = $(root, "data-size");
@@ -408,24 +495,40 @@ async function reviewPage() {
   const bar = $(root, "data-bar");
   let mode = pref("review-mode", "en-vi");
 
+  const topicSelect = $(root, "data-review-topic-select");
+  // A topic in the URL (from the list page) wins over the remembered one.
+  let topicSlug = topicFromUrl ?? pref("review-topic", "");
   size.value = pref("review-size", "20");
-  size.addEventListener("change", () => { savePref("review-size", size.value); reviewPage(); });
+  size.addEventListener("change", () => { savePref("review-size", size.value); reviewPage(topicSlug); });
+  topicSelect.addEventListener("change", () => {
+    savePref("review-topic", topicSelect.value);
+    location.hash = topicSelect.value ? `#/review?topic=${topicSelect.value}` : "#/review";
+  });
   for (const btn of root.querySelectorAll("[data-mode]")) {
     btn.classList.toggle("active", btn.dataset.mode === mode);
     btn.setAttribute("aria-checked", btn.dataset.mode === mode);
     btn.addEventListener("click", () => {
       if (btn.dataset.mode === mode) return;
       savePref("review-mode", btn.dataset.mode);
-      reviewPage(); // a new round in the other direction
+      reviewPage(topicSlug); // a new round in the other direction
     });
   }
 
   let words;
   try {
-    words = shuffle(await api("/words"));
+    [words] = await Promise.all([api("/words"), loadTopics()]);
   } catch (err) {
     return showError(card, err);
   }
+  // "Ngẫu nhiên" = every word; otherwise only the chosen topic (empty topics are disabled).
+  const counts = {};
+  for (const w of words) counts[w.topic_id] = (counts[w.topic_id] || 0) + 1;
+  topicOptions(topicSelect, { allLabel: `🎲 Ngẫu nhiên – tất cả chủ đề (${words.length})`, counts });
+  const topic = topicBySlug(topicSlug);
+  if (!topic || !counts[topic.id]) topicSlug = "";
+  topicSelect.value = topicSlug;
+  if (topicSlug) words = words.filter((w) => w.topic_id === topic.id);
+  shuffle(words);
   if (words.length === 0) {
     card.innerHTML = '<p class="empty">Chưa có từ nào để ôn. <a href="#/new">Thêm từ</a></p>';
     return;
@@ -571,7 +674,7 @@ async function reviewPage() {
     input.className = "ok";
     $(root, "data-next").focus();
   });
-  $(root, "data-again").addEventListener("click", () => reviewPage());
+  $(root, "data-again").addEventListener("click", () => reviewPage(topicSlug));
 
   // Enter on the "Tiếp tục" button already clicks it; this covers focus elsewhere.
   document.addEventListener("keydown", (e) => {
@@ -606,8 +709,8 @@ async function route() {
   const edit = path.match(/^\/edit\/(\d+)$/);
   if (path === "/new") { page = "new"; formPage(null); }
   else if (edit) { page = "edit"; formPage(Number(edit[1])); }
-  else if (path === "/review") { page = "review"; reviewPage(); }
-  else listPage(params.get("q") || "");
+  else if (path === "/review") { page = "review"; reviewPage(params.get("topic")); }
+  else listPage(params);
   for (const a of document.querySelectorAll("[data-nav]")) {
     a.classList.toggle("active", a.dataset.nav === page);
   }

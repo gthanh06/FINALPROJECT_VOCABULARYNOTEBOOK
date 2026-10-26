@@ -78,18 +78,24 @@
 
       <div class="stats" data-stats></div>
 
+      <div class="row topics-head">
+        <h2>Chủ đề</h2>
+        <a class="btn small" data-review-topic hidden></a>
+      </div>
+      <div class="topics" data-topics role="group" aria-label="Chọn chủ đề"></div>
+
       <div class="toolbar">
         <form class="search" data-search role="search">
           <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
           <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm" autocomplete="off">
         </form>
+        <select data-pos aria-label="Loại từ"></select>
         <select data-sort aria-label="Sắp xếp">
           <option value="new">Mới nhất</option>
           <option value="az">A → Z</option>
           <option value="za">Z → A</option>
         </select>
       </div>
-      <div class="chips" data-chips role="group" aria-label="Lọc theo loại từ"></div>
 
       <p class="muted count" data-count></p>
       <ul class="words" data-words></ul>
@@ -123,6 +129,9 @@
             </select>
           </label>
         </div>
+        <label><span>Chủ đề</span>
+          <select name="topic_id" data-topic-select></select>
+        </label>
         <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
           <input name="meaning_vi" required autocomplete="off" placeholder="vd: kiên trì">
         </label>
@@ -146,6 +155,11 @@
     <section class="narrow">
       <div class="row">
         <h1>Ôn tập</h1>
+      </div>
+      <div class="review-settings">
+        <label class="deck-size">Chủ đề
+          <select data-review-topic-select></select>
+        </label>
         <label class="deck-size">Số thẻ
           <select data-size>
             <option value="10">10</option>
