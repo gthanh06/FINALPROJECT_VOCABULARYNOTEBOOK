@@ -10,6 +10,13 @@ Sổ tay từ vựng Anh–Việt: lưu từ, nghĩa, loại từ, câu ví dụ
 - CI/CD: GitHub Actions
 - AI: Gemini API (dự phòng Groq)
 
+## Tài khoản & đăng nhập
+
+- Đăng ký bằng email + mật khẩu (tối thiểu 8 ký tự). Mỗi tài khoản có **sổ từ riêng**; tài khoản mới được chép sẵn bộ từ mẫu (các từ có `user_id` NULL, nạp từ `migrations/003_seed_words.sql`).
+- Mật khẩu băm bằng `scrypt` (salt ngẫu nhiên, `app/security.py`); DB không lưu mật khẩu gốc.
+- Đăng nhập tạo session: trình duyệt giữ token ngẫu nhiên trong cookie `HttpOnly`, `SameSite=Lax` (`Secure` khi `APP_ENV=production`); DB chỉ lưu SHA-256 của token, hết hạn sau 30 ngày. Đăng xuất xoá session trên server.
+- API: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Mọi route `/api/words...` trả `401` nếu chưa đăng nhập.
+
 ## Chạy local (Docker)
 
 Cần Docker Desktop. Một lệnh dựng cả app và PostgreSQL:
@@ -56,7 +63,7 @@ Biến môi trường:
 | Biến | Bắt buộc | Ý nghĩa |
 |---|---|---|
 | `DATABASE_URL` | có | Chuỗi kết nối PostgreSQL |
-| `APP_ENV` | không | `development` / `production`, hiện ở `/api/info` |
+| `APP_ENV` | không | `development` / `production`, hiện ở `/api/info`; `production` bật cookie `Secure` |
 | `PORT` | không | Render tự đặt; mặc định 8000 |
 
 ## Quy tắc làm việc

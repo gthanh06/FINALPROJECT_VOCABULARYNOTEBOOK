@@ -14,16 +14,53 @@
         <span class="logo" aria-hidden="true">Aa</span>
         <span>Sổ tay từ vựng</span>
       </a>
-      <nav>
+      <nav data-nav-links hidden>
         <a href="#/" data-nav="list">Danh sách</a>
         <a href="#/new" data-nav="new">Thêm từ</a>
         <a href="#/review" data-nav="review">Ôn tập</a>
       </nav>
+      <div class="user" data-user hidden>
+        <span class="avatar" data-avatar aria-hidden="true"></span>
+        <span class="user-name" data-user-name></span>
+        <button class="btn small ghost" data-logout>Đăng xuất</button>
+      </div>
     </div>
   </header>
 
   <main id="view" aria-live="polite"></main>
   <div id="toast" role="status" hidden></div>
+
+  <!-- Đăng nhập / Đăng ký (dùng chung một form) -->
+  <template id="tpl-auth">
+    <section class="auth">
+      <div class="card auth-card">
+        <span class="logo lg" aria-hidden="true">Aa</span>
+        <h1 data-auth-title></h1>
+        <p class="muted" data-auth-subtitle></p>
+        <div class="tabs" role="tablist">
+          <a href="#/login" data-tab="login">Đăng nhập</a>
+          <a href="#/register" data-tab="register">Đăng ký</a>
+        </div>
+        <form class="form" data-auth-form novalidate>
+          <label data-name-field><span>Tên hiển thị</span>
+            <input name="display_name" maxlength="60" autocomplete="name" placeholder="vd: Gia Thanh">
+          </label>
+          <label><span>Email</span>
+            <input name="email" type="email" required maxlength="254" autocomplete="email" placeholder="ban@example.com">
+          </label>
+          <label><span>Mật khẩu</span>
+            <span class="password">
+              <input name="password" type="password" required maxlength="128" placeholder="Ít nhất 8 ký tự">
+              <button type="button" class="btn small ghost" data-toggle-password>Hiện</button>
+            </span>
+          </label>
+          <p class="error" data-error hidden></p>
+          <button class="btn primary lg block" type="submit" data-submit></button>
+        </form>
+        <p class="muted switch" data-switch></p>
+      </div>
+    </section>
+  </template>
 
   <!-- Danh sách -->
   <template id="tpl-list">
