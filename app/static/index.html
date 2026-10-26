@@ -4,16 +4,22 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>Sổ tay từ vựng</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-size='16' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EAa%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="#/">📒 Sổ tay từ vựng</a>
-    <nav>
-      <a href="#/" data-nav="list">Danh sách</a>
-      <a href="#/new" data-nav="new">Thêm từ</a>
-      <a href="#/review" data-nav="review">Ôn tập</a>
-    </nav>
+    <div class="topbar-inner">
+      <a class="brand" href="#/">
+        <span class="logo" aria-hidden="true">Aa</span>
+        <span>Sổ tay từ vựng</span>
+      </a>
+      <nav>
+        <a href="#/" data-nav="list">Danh sách</a>
+        <a href="#/new" data-nav="new">Thêm từ</a>
+        <a href="#/review" data-nav="review">Ôn tập</a>
+      </nav>
+    </div>
   </header>
 
   <main id="view" aria-live="polite"></main>
@@ -22,52 +28,76 @@
   <!-- Danh sách -->
   <template id="tpl-list">
     <section>
-      <div class="row">
-        <h1>Danh sách từ</h1>
-        <a class="btn primary" href="#/new">+ Thêm từ</a>
+      <div class="hero">
+        <div>
+          <h1>Sổ tay của bạn</h1>
+          <p class="muted">Lưu từ mới, xem ví dụ và ôn tập mỗi ngày.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn" href="#/review">Ôn tập ngay</a>
+          <a class="btn primary" href="#/new">+ Thêm từ</a>
+        </div>
       </div>
-      <form class="search" data-search>
-        <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm">
-        <button class="btn" type="submit">Tìm</button>
-      </form>
-      <p class="muted" data-count></p>
+
+      <div class="stats" data-stats></div>
+
+      <div class="toolbar">
+        <form class="search" data-search role="search">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm" autocomplete="off">
+        </form>
+        <select data-sort aria-label="Sắp xếp">
+          <option value="new">Mới nhất</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+        </select>
+      </div>
+      <div class="chips" data-chips role="group" aria-label="Lọc theo loại từ"></div>
+
+      <p class="muted count" data-count></p>
       <ul class="words" data-words></ul>
+      <div class="row center">
+        <button class="btn" data-more hidden>Xem thêm</button>
+      </div>
     </section>
   </template>
 
   <!-- Thêm / Sửa (dùng chung một form) -->
   <template id="tpl-form">
-    <section>
+    <section class="narrow">
+      <a class="back" href="#/">← Danh sách</a>
       <h1 data-title></h1>
       <form class="card form" data-form>
-        <label>Từ tiếng Anh *
-          <input name="word" required maxlength="100" autocomplete="off">
-        </label>
-        <label>Nghĩa tiếng Việt *
-          <input name="meaning_vi" required autocomplete="off">
-        </label>
-        <label>Loại từ
-          <select name="part_of_speech">
-            <option value="">— chọn —</option>
-            <option value="noun">noun (danh từ)</option>
-            <option value="verb">verb (động từ)</option>
-            <option value="adjective">adjective (tính từ)</option>
-            <option value="adverb">adverb (trạng từ)</option>
-            <option value="preposition">preposition (giới từ)</option>
-            <option value="conjunction">conjunction (liên từ)</option>
-            <option value="pronoun">pronoun (đại từ)</option>
-            <option value="phrase">phrase (cụm từ)</option>
-          </select>
+        <div class="grid-2">
+          <label><span>Từ tiếng Anh <span class="req">*</span></span>
+            <input name="word" required maxlength="100" autocomplete="off" placeholder="vd: persevere">
+          </label>
+          <label>Loại từ
+            <select name="part_of_speech">
+              <option value="">— chọn —</option>
+              <option value="noun">noun (danh từ)</option>
+              <option value="verb">verb (động từ)</option>
+              <option value="adjective">adjective (tính từ)</option>
+              <option value="adverb">adverb (trạng từ)</option>
+              <option value="preposition">preposition (giới từ)</option>
+              <option value="conjunction">conjunction (liên từ)</option>
+              <option value="pronoun">pronoun (đại từ)</option>
+              <option value="phrase">phrase (cụm từ)</option>
+            </select>
+          </label>
+        </div>
+        <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
+          <input name="meaning_vi" required autocomplete="off" placeholder="vd: kiên trì">
         </label>
         <label>Câu ví dụ
-          <textarea name="example" rows="2"></textarea>
+          <textarea name="example" rows="2" placeholder="vd: You must persevere to learn a language."></textarea>
         </label>
         <label>Ghi chú cách dùng
-          <textarea name="usage_note" rows="3"></textarea>
+          <textarea name="usage_note" rows="3" placeholder="vd: persevere with / in sth"></textarea>
         </label>
         <p class="error" data-error hidden></p>
         <div class="row end">
-          <a class="btn" href="#/">Huỷ</a>
+          <a class="btn ghost" href="#/">Huỷ</a>
           <button class="btn primary" type="submit" data-submit>Lưu</button>
         </div>
       </form>
@@ -76,11 +106,28 @@
 
   <!-- Ôn tập -->
   <template id="tpl-review">
-    <section>
-      <h1>Ôn tập</h1>
-      <p class="muted" data-progress></p>
+    <section class="narrow">
+      <div class="row">
+        <h1>Ôn tập</h1>
+        <label class="deck-size">Số thẻ
+          <select data-size>
+            <option value="10">10</option>
+            <option value="20" selected>20</option>
+            <option value="50">50</option>
+            <option value="0">Tất cả</option>
+          </select>
+        </label>
+      </div>
+      <div class="progress" aria-hidden="true"><div class="progress-bar" data-bar></div></div>
+      <p class="muted progress-text" data-progress></p>
+
       <div class="card flash" data-card>
-        <p class="pos" data-pos></p>
+        <div class="flash-top">
+          <span class="badge" data-pos></span>
+          <button class="icon-btn" data-speak title="Nghe phát âm" aria-label="Nghe phát âm">
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
+          </button>
+        </div>
         <p class="flash-word" data-word></p>
         <div class="answer" data-answer hidden>
           <p class="flash-meaning" data-meaning></p>
@@ -88,18 +135,19 @@
           <p class="note" data-note></p>
         </div>
         <div class="row center" data-actions-show>
-          <button class="btn primary" data-show>Xem nghĩa</button>
+          <button class="btn primary lg" data-show>Xem nghĩa <kbd>Space</kbd></button>
         </div>
         <div class="row center" data-actions-grade hidden>
-          <button class="btn danger" data-grade="forgot">Quên</button>
-          <button class="btn success" data-grade="remembered">Nhớ</button>
+          <button class="btn danger lg" data-grade="forgot">Quên <kbd>1</kbd></button>
+          <button class="btn success lg" data-grade="remembered">Nhớ <kbd>2</kbd></button>
         </div>
       </div>
       <div class="card done" data-done hidden>
-        <p class="big">🎉 Xong lượt ôn!</p>
-        <p data-summary></p>
+        <div class="ring" data-ring><span data-percent></span></div>
+        <p class="big">Hoàn thành lượt ôn!</p>
+        <p class="muted" data-summary></p>
         <div class="row center">
-          <button class="btn primary" data-again>Ôn lại</button>
+          <button class="btn primary" data-again>Ôn lượt mới</button>
           <a class="btn" href="#/">Về danh sách</a>
         </div>
       </div>
