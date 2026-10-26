@@ -1,7 +1,7 @@
 # tests/fake_repo.py — same methods as app.repository's classes, kept in memory.
 from datetime import UTC, datetime, timedelta
 
-from app.repository import UPDATABLE, DuplicateEmail, DuplicateWord
+from app.repository import UPDATABLE, DuplicateEmail, DuplicateWord, UnknownTopic
 
 
 class FakeStore:
@@ -12,6 +12,14 @@ class FakeStore:
         self.reviews: list[dict] = []
         self.next_id = 1
         self.starter: list[dict] = []  # like the seeded words with user_id NULL
+        self.topics = [
+            {"id": 1, "slug": "animals", "name": "Con vật", "icon": "🐾"},
+            {"id": 2, "slug": "home", "name": "Nhà cửa & nội thất", "icon": "🛋️"},
+        ]
+
+    def check_topic(self, topic_id):
+        if topic_id is not None and topic_id not in {t["id"] for t in self.topics}:
+            raise UnknownTopic
 
     def insert_word(self, user_id, data):
         row = {**data, "id": self.next_id, "user_id": user_id, "created_at": datetime.now(UTC)}
@@ -45,6 +53,7 @@ class FakeWordRepository:
     def create_word(self, data):
         if self._taken(data["word"]):
             raise DuplicateWord
+        self.store.check_topic(data.get("topic_id"))
         return self.store.insert_word(self.user_id, data)
 
     def update_word(self, word_id, fields):
@@ -53,8 +62,17 @@ class FakeWordRepository:
             return None
         if "word" in fields and self._taken(fields["word"], except_id=word_id):
             raise DuplicateWord
+        if "topic_id" in fields:
+            self.store.check_topic(fields["topic_id"])
         row.update({k: v for k, v in fields.items() if k in UPDATABLE})
         return row
+
+    def list_topics(self):
+        mine = self._mine()
+        return [
+            {**t, "word_count": sum(w.get("topic_id") == t["id"] for w in mine)}
+            for t in self.store.topics
+        ]
 
     def delete_word(self, word_id):
         if self.get_word(word_id) is None:

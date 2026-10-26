@@ -7,12 +7,13 @@ from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.auth import CurrentUser, get_conn
 from app.grading import check
-from app.repository import DuplicateWord, WordRepository
+from app.repository import DuplicateWord, UnknownTopic, WordRepository
 from app.schemas import (
     AnswerIn,
     AnswerResult,
     Review,
     ReviewCreate,
+    Topic,
     Word,
     WordCreate,
     WordUpdate,
@@ -34,6 +35,15 @@ def not_found() -> HTTPException:
     return HTTPException(status_code=404, detail="Không tìm thấy từ này")
 
 
+def unknown_topic() -> HTTPException:
+    return HTTPException(status_code=422, detail="Chủ đề không tồn tại")
+
+
+@router.get("/topics", response_model=list[Topic])
+def list_topics(repo: Repo):
+    return repo.list_topics()
+
+
 @router.get("/words", response_model=list[Word])
 def list_words(repo: Repo, q: str | None = None):
     return repo.list_words(q)
@@ -45,6 +55,8 @@ def create_word(body: WordCreate, repo: Repo):
         return repo.create_word(body.model_dump())
     except DuplicateWord:
         raise HTTPException(status_code=409, detail="Từ này đã có trong sổ") from None
+    except UnknownTopic:
+        raise unknown_topic() from None
 
 
 @router.get("/words/{word_id}", response_model=Word)
@@ -61,6 +73,8 @@ def update_word(word_id: int, body: WordUpdate, repo: Repo):
         word = repo.update_word(word_id, body.model_dump(exclude_unset=True))
     except DuplicateWord:
         raise HTTPException(status_code=409, detail="Từ này đã có trong sổ") from None
+    except UnknownTopic:
+        raise unknown_topic() from None
     if word is None:
         raise not_found()
     return word

@@ -139,20 +139,31 @@ textarea { resize: vertical; }
 .stat .label { color: var(--muted); font-size: 0.82rem; font-weight: 500; }
 .stat .value { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.02em; }
 
+.topics-head { margin-bottom: 10px; }
+.topics-head h2 { font-size: 1.05rem; margin: 0; }
+.topics { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 18px; }
+.topic-tile {
+  display: grid; gap: 2px; justify-items: start; align-content: start; text-align: left; padding: 12px;
+  cursor: pointer; border: 1px solid var(--border); border-radius: 12px; background: var(--surface);
+  color: var(--text); font: inherit; scroll-snap-align: start; transition: border-color 0.15s, box-shadow 0.15s;
+}
+.topic-tile:hover { box-shadow: var(--shadow); }
+.topic-tile.active { border-color: var(--primary); background: var(--primary-soft); box-shadow: 0 0 0 1px var(--primary); }
+.topic-tile .icon { font-size: 1.5rem; line-height: 1.2; }
+.topic-tile .name { font-weight: 600; font-size: 0.86rem; line-height: 1.25; }
+.topic-tile .n { color: var(--muted); font-size: 0.78rem; }
+.topic-tag {
+  align-self: flex-start; font-size: 0.78rem; color: var(--muted); padding: 2px 8px;
+  border-radius: 999px; background: var(--surface-2);
+}
+.topic-tag:hover { color: var(--text); }
+
 .toolbar { display: flex; gap: 10px; margin-bottom: 12px; }
 .toolbar select { width: auto; }
 .search { position: relative; flex: 1; }
 .search input { padding-left: 38px; }
 .search-icon { position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--muted); }
 
-.chips { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 14px; }
-.chip {
-  padding: 5px 12px; border-radius: 999px; border: 1px solid var(--border); background: var(--surface);
-  color: var(--muted); font: inherit; font-size: 0.85rem; font-weight: 500; cursor: pointer;
-}
-.chip:hover { color: var(--text); }
-.chip.active { background: var(--primary-soft); border-color: var(--primary); color: var(--primary); }
-.chip .n { opacity: 0.7; margin-left: 4px; }
 .count { font-size: 0.88rem; margin: 0 0 10px; }
 
 .words {
@@ -199,6 +210,8 @@ textarea { resize: vertical; }
 /* ---------- Review page ---------- */
 .deck-size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
 .deck-size select { width: auto; padding: 6px 10px; }
+.review-settings { display: flex; gap: 12px 16px; flex-wrap: wrap; justify-content: space-between; margin-top: 8px; }
+.review-settings select[data-review-topic-select] { max-width: 340px; }
 .tabs.mode { margin: 14px 0 4px; }
 .tabs button {
   flex: 1; padding: 9px; border: 0; border-radius: 8px; background: transparent; cursor: pointer;
@@ -290,4 +303,11 @@ textarea { resize: vertical; }
   .topbar nav a { padding: 6px 10px; }
   .btn.lg { min-width: 0; flex: 1; }
   .user-name { display: none; }
+  .toolbar { flex-wrap: wrap; }
+  /* Phones: one swipeable row instead of a tall grid. */
+  .topics {
+    grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 128px;
+    overflow-x: auto; padding-bottom: 8px; scroll-snap-type: x proximity;
+  }
+  .toolbar .search { flex-basis: 100%; }
 }
