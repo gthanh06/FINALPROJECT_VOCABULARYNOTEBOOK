@@ -6,6 +6,10 @@ from app.security import SESSION_COOKIE, hash_password, verify_password
 from tests.conftest import PASSWORD, register
 
 
+def add_apple(admin):
+    return admin.post("/api/words", json={"word": "apple", "meaning_vi": "quả táo"}).json()["id"]
+
+
 def login(client, email="an@example.com", password=PASSWORD):
     return client.post("/api/auth/login", json={"email": email, "password": password})
 
@@ -84,21 +88,46 @@ def test_words_need_login(anon):
     assert anon.delete("/api/words/1").status_code == 401
 
 
-def test_new_account_gets_the_starter_words(anon, repo):
-    repo.starter = [{"word": "hello", "meaning_vi": "xin chào", "part_of_speech": None,
-                     "example": None, "usage_note": None}]
-    register(anon)
-    assert [w["word"] for w in anon.get("/api/words").json()] == ["hello"]
+def test_new_accounts_are_learners(anon):
+    assert register(anon).json()["role"] == "learner"
 
 
-def test_users_only_see_their_own_words(anon):
-    register(anon, email="an@example.com")
-    an_word = anon.post("/api/words", json={"word": "apple", "meaning_vi": "quả táo"}).json()
-    anon.post("/api/auth/logout")
+def test_learners_cannot_change_words(client, learner):
+    word_id = add_apple(client)
+    assert learner.post("/api/words", json={"word": "pear", "meaning_vi": "lê"}).status_code == 403
+    assert learner.patch(f"/api/words/{word_id}", json={"meaning_vi": "x"}).status_code == 403
+    assert learner.delete(f"/api/words/{word_id}").status_code == 403
+    assert client.get(f"/api/words/{word_id}").json()["meaning_vi"] == "quả táo"
 
-    register(anon, email="binh@example.com", name="Bình")
-    assert anon.get("/api/words").json() == []
-    assert anon.get(f"/api/words/{an_word['id']}").status_code == 404
-    assert anon.delete(f"/api/words/{an_word['id']}").status_code == 404
-    # Each notebook has its own words, so Bình can save "apple" too.
-    assert anon.post("/api/words", json={"word": "apple", "meaning_vi": "táo"}).status_code == 201
+
+def test_everyone_studies_the_admins_words(client, learner):
+    add_apple(client)
+    assert [w["word"] for w in learner.get("/api/words").json()] == ["apple"]
+
+
+def test_practice_history_is_per_user(client, learner):
+    word_id = add_apple(client)
+    learner.post(f"/api/words/{word_id}/reviews", json={"result": "forgot"})
+    assert len(learner.get(f"/api/words/{word_id}/reviews").json()) == 1
+    assert client.get(f"/api/words/{word_id}/reviews").json() == []
+
+
+def test_admin_sees_learners_progress(client, learner):
+    word_id = add_apple(client)
+    learner.post(f"/api/words/{word_id}/reviews", json={"result": "remembered"})
+    learner.post(f"/api/words/{word_id}/reviews", json={"result": "forgot"})
+    rows = {u["email"]: u for u in client.get("/api/admin/users").json()}
+    assert rows["learner@example.com"]["review_count"] == 2
+    assert rows["learner@example.com"]["remembered_count"] == 1
+    assert "password_hash" not in rows["learner@example.com"]
+    assert learner.get("/api/admin/users").status_code == 403
+
+
+def test_ensure_admin_creates_or_promotes(users):
+    created = users.ensure_admin("boss@example.com", "Admin", hash_password("admin-pass-1"))
+    assert created["role"] == "admin"
+    learner = users.create_user("lan@example.com", "Lan", hash_password("old-password"))
+    promoted = users.ensure_admin("LAN@example.com", "Admin", hash_password("new-password"))
+    assert promoted["id"] == learner["id"]
+    assert promoted["role"] == "admin"
+    assert verify_password("new-password", promoted["password_hash"])

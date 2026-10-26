@@ -36,7 +36,7 @@ def versioned_index() -> str:
 
 INDEX_HTML = versioned_index()
 
-DB_DOWN_MESSAGE = "Cơ sở dữ liệu đang khởi động hoặc tạm ngưng, vui lòng thử lại sau ít giây."
+DB_DOWN_MESSAGE = "The database is starting up or paused. Please try again in a few seconds."
 
 app = FastAPI(title="vocab-notebook")
 app.include_router(auth_router)

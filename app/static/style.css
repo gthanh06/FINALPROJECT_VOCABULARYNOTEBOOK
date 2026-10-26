@@ -266,6 +266,59 @@ textarea { resize: vertical; }
 .missed-title { margin: 0 0 6px; font-weight: 700; }
 .missed ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
 
+/* ---------- Progress ---------- */
+.stat .sub { color: var(--muted); font-size: 0.78rem; }
+.progress-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px; }
+section > .card h2, .progress-grid h2 { font-size: 1rem; margin: 0 0 4px; }
+.small { font-size: 0.85rem; margin: 0 0 10px; }
+.week { display: grid; grid-template-columns: repeat(7, 1fr); gap: 8px; height: 170px; margin-top: 12px; }
+.day { display: grid; grid-template-rows: 18px 1fr 20px; justify-items: center; gap: 4px; }
+.day .n { font-size: 0.75rem; color: var(--muted); }
+.day .label { font-size: 0.78rem; color: var(--muted); }
+.bar-box { width: 100%; max-width: 34px; display: flex; align-items: flex-end; }
+.bar {
+  width: 100%; min-height: 3px; border-radius: 6px 6px 3px 3px; display: flex; align-items: flex-end;
+  background: color-mix(in srgb, var(--danger) 35%, var(--surface-2)); overflow: hidden;
+}
+.bar-ok { width: 100%; background: var(--success); }
+.legend { font-size: 0.8rem; margin: 10px 0 0; }
+.dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin: 0 4px 0 8px; vertical-align: middle; }
+.dot.ok { background: var(--success); }
+.dot.all { background: color-mix(in srgb, var(--danger) 35%, var(--surface-2)); }
+.dot.seen { background: color-mix(in srgb, var(--primary) 30%, var(--surface-2)); }
+.review-list { list-style: none; padding: 0; margin: 0; display: grid; gap: 6px; }
+.review-list li { display: flex; gap: 4px; align-items: baseline; flex-wrap: wrap; }
+.review-list .forgot { margin-left: auto; font-size: 0.8rem; }
+.topic-progress { display: grid; gap: 4px; }
+.topic-row {
+  display: grid; grid-template-columns: minmax(150px, 220px) 1fr 70px; align-items: center; gap: 12px;
+  padding: 8px; border-radius: 8px; color: var(--text);
+}
+.topic-row:hover { background: var(--surface-2); }
+.topic-row .name { font-weight: 600; font-size: 0.9rem; }
+.topic-row .nums { text-align: right; font-size: 0.85rem; }
+.track { position: relative; height: 10px; border-radius: 999px; background: var(--surface-2); overflow: hidden; }
+.track > div { position: absolute; inset: 0 auto 0 0; border-radius: 999px; }
+.track .seen { background: color-mix(in srgb, var(--primary) 30%, var(--surface-2)); }
+.track .ok { background: var(--success); }
+
+/* ---------- Admin ---------- */
+.admin-tabs { max-width: 360px; margin: 0 0 16px; }
+.table-card { padding: 0; overflow-x: auto; margin-bottom: 16px; }
+.table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
+.table th {
+  text-align: left; font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.04em;
+  color: var(--muted); padding: 12px 14px; border-bottom: 1px solid var(--border); background: var(--surface-2);
+}
+.table td { padding: 10px 14px; border-bottom: 1px solid var(--border); vertical-align: middle; }
+.table tbody tr:last-child td { border-bottom: 0; }
+.table tbody tr:hover { background: color-mix(in srgb, var(--surface-2) 60%, transparent); }
+.table td.ex { font-style: italic; max-width: 280px; }
+.table td.empty { text-align: center; padding: 32px; }
+.nowrap { white-space: nowrap; }
+.row-actions { white-space: nowrap; text-align: right; }
+.row-actions .icon-btn { display: inline-grid; }
+
 /* ---------- Account ---------- */
 .user { display: flex; align-items: center; gap: 8px; }
 .avatar {
@@ -277,7 +330,14 @@ textarea { resize: vertical; }
 .btn.block { width: 100%; }
 
 .auth { min-height: calc(100vh - 160px); display: grid; place-items: center; }
-.auth-card { width: 100%; max-width: 420px; padding: 32px 28px; text-align: center; }
+.auth-card { position: relative; width: 100%; max-width: 420px; padding: 32px 28px; text-align: center; }
+.admin-pill {
+  position: absolute; top: 12px; right: 12px; padding: 3px 10px; border-radius: 999px;
+  border: 1px solid var(--border); color: var(--muted); font-size: 0.75rem; font-weight: 600;
+}
+.admin-pill:hover { color: var(--text); background: var(--surface-2); }
+.auth-card.admin-mode { border-color: var(--text); }
+.auth-card.admin-mode .logo { background: var(--text); color: var(--bg); }
 .auth-card h1 { margin-top: 14px; }
 .auth-card .form { padding: 0; text-align: left; margin-top: 4px; }
 .logo.lg { width: 52px; height: 52px; border-radius: 14px; font-size: 1.2rem; margin: 0 auto; }
@@ -304,6 +364,10 @@ textarea { resize: vertical; }
   .btn.lg { min-width: 0; flex: 1; }
   .user-name { display: none; }
   .toolbar { flex-wrap: wrap; }
+  .hide-sm { display: none; }
+  .progress-grid { grid-template-columns: 1fr; }
+  .topic-row { grid-template-columns: 1fr 60px; }
+  .topic-row .track { grid-column: 1 / -1; grid-row: 2; }
   /* Phones: one swipeable row instead of a tall grid. */
   .topics {
     grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: 128px;

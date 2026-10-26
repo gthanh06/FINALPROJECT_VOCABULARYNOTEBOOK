@@ -1,9 +1,9 @@
 <!doctype html>
-<html lang="vi">
+<html lang="en">
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Sổ tay từ vựng</title>
+  <title>Vocabulary Notebook</title>
   <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%234f46e5'/%3E%3Ctext x='16' y='22' font-size='16' font-family='Arial' font-weight='700' fill='white' text-anchor='middle'%3EAa%3C/text%3E%3C/svg%3E">
   <link rel="stylesheet" href="/static/style.css">
 </head>
@@ -12,17 +12,18 @@
     <div class="topbar-inner">
       <a class="brand" href="#/">
         <span class="logo" aria-hidden="true">Aa</span>
-        <span>Sổ tay từ vựng</span>
+        <span>Vocabulary Notebook</span>
       </a>
       <nav data-nav-links hidden>
-        <a href="#/" data-nav="list">Danh sách</a>
-        <a href="#/new" data-nav="new">Thêm từ</a>
-        <a href="#/review" data-nav="review">Ôn tập</a>
+        <a href="#/" data-nav="list">Words</a>
+        <a href="#/review" data-nav="review">Practice</a>
+        <a href="#/progress" data-nav="progress">Progress</a>
+        <a href="#/admin" data-nav="admin" data-admin-only hidden>Admin</a>
       </nav>
       <div class="user" data-user hidden>
         <span class="avatar" data-avatar aria-hidden="true"></span>
         <span class="user-name" data-user-name></span>
-        <button class="btn small ghost" data-logout>Đăng xuất</button>
+        <button class="btn small ghost" data-logout>Log out</button>
       </div>
     </div>
   </header>
@@ -30,28 +31,29 @@
   <main id="view" aria-live="polite"></main>
   <div id="toast" role="status" hidden></div>
 
-  <!-- Đăng nhập / Đăng ký (dùng chung một form) -->
+  <!-- Log in / Sign up (one shared form) -->
   <template id="tpl-auth">
     <section class="auth">
       <div class="card auth-card">
+        <a class="admin-pill" href="#/admin-login" data-admin-link>🔒 Admin</a>
         <span class="logo lg" aria-hidden="true">Aa</span>
         <h1 data-auth-title></h1>
         <p class="muted" data-auth-subtitle></p>
-        <div class="tabs" role="tablist">
-          <a href="#/login" data-tab="login">Đăng nhập</a>
-          <a href="#/register" data-tab="register">Đăng ký</a>
+        <div class="tabs" role="tablist" data-auth-tabs>
+          <a href="#/login" data-tab="login">Log in</a>
+          <a href="#/register" data-tab="register">Sign up</a>
         </div>
         <form class="form" data-auth-form novalidate>
-          <label data-name-field><span>Tên hiển thị</span>
-            <input name="display_name" maxlength="60" autocomplete="name" placeholder="vd: Gia Thanh">
+          <label data-name-field><span>Display name</span>
+            <input name="display_name" maxlength="60" autocomplete="name" placeholder="e.g. Gia Thanh">
           </label>
           <label><span>Email</span>
-            <input name="email" type="email" required maxlength="254" autocomplete="email" placeholder="ban@example.com">
+            <input name="email" type="email" required maxlength="254" autocomplete="email" placeholder="you@example.com">
           </label>
-          <label><span>Mật khẩu</span>
+          <label><span>Password</span>
             <span class="password">
-              <input name="password" type="password" required maxlength="128" placeholder="Ít nhất 8 ký tự">
-              <button type="button" class="btn small ghost" data-toggle-password>Hiện</button>
+              <input name="password" type="password" required maxlength="128" placeholder="At least 8 characters">
+              <button type="button" class="btn small ghost" data-toggle-password>Show</button>
             </span>
           </label>
           <p class="error" data-error hidden></p>
@@ -62,36 +64,35 @@
     </section>
   </template>
 
-  <!-- Danh sách -->
+  <!-- Word list -->
   <template id="tpl-list">
     <section>
       <div class="hero">
         <div>
-          <h1>Sổ tay của bạn</h1>
-          <p class="muted">Lưu từ mới, xem ví dụ và ôn tập mỗi ngày.</p>
+          <h1>Word bank</h1>
+          <p class="muted">Browse the words by topic, listen to them and practice every day.</p>
         </div>
         <div class="hero-actions">
-          <a class="btn" href="#/review">Ôn tập ngay</a>
-          <a class="btn primary" href="#/new">+ Thêm từ</a>
+          <a class="btn primary" href="#/review">Practice now</a>
         </div>
       </div>
 
       <div class="stats" data-stats></div>
 
       <div class="row topics-head">
-        <h2>Chủ đề</h2>
+        <h2>Topics</h2>
         <a class="btn small" data-review-topic hidden></a>
       </div>
-      <div class="topics" data-topics role="group" aria-label="Chọn chủ đề"></div>
+      <div class="topics" data-topics role="group" aria-label="Choose a topic"></div>
 
       <div class="toolbar">
         <form class="search" data-search role="search">
           <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm" autocomplete="off">
+          <input type="search" name="q" placeholder="Search by word or meaning..." aria-label="Search" autocomplete="off">
         </form>
-        <select data-pos aria-label="Loại từ"></select>
-        <select data-sort aria-label="Sắp xếp">
-          <option value="new">Mới nhất</option>
+        <select data-pos aria-label="Part of speech"></select>
+        <select data-sort aria-label="Sort">
+          <option value="new">Newest</option>
           <option value="az">A → Z</option>
           <option value="za">Z → A</option>
         </select>
@@ -100,78 +101,158 @@
       <p class="muted count" data-count></p>
       <ul class="words" data-words></ul>
       <div class="row center">
-        <button class="btn" data-more hidden>Xem thêm</button>
+        <button class="btn" data-more hidden>Show more</button>
       </div>
     </section>
   </template>
 
-  <!-- Thêm / Sửa (dùng chung một form) -->
+  <!-- Add / Edit (one shared form) -->
   <template id="tpl-form">
     <section class="narrow">
-      <a class="back" href="#/">← Danh sách</a>
+      <a class="back" href="#/admin">← Admin</a>
       <h1 data-title></h1>
       <form class="card form" data-form>
         <div class="grid-2">
-          <label><span>Từ tiếng Anh <span class="req">*</span></span>
-            <input name="word" required maxlength="100" autocomplete="off" placeholder="vd: persevere">
+          <label><span>English word <span class="req">*</span></span>
+            <input name="word" required maxlength="100" autocomplete="off" placeholder="e.g. persevere">
           </label>
-          <label>Loại từ
+          <label>Part of speech
             <select name="part_of_speech">
-              <option value="">— chọn —</option>
-              <option value="noun">noun (danh từ)</option>
-              <option value="verb">verb (động từ)</option>
-              <option value="adjective">adjective (tính từ)</option>
-              <option value="adverb">adverb (trạng từ)</option>
-              <option value="preposition">preposition (giới từ)</option>
-              <option value="conjunction">conjunction (liên từ)</option>
-              <option value="pronoun">pronoun (đại từ)</option>
-              <option value="phrase">phrase (cụm từ)</option>
+              <option value="">— choose —</option>
+              <option value="noun">noun</option>
+              <option value="verb">verb</option>
+              <option value="adjective">adjective</option>
+              <option value="adverb">adverb</option>
+              <option value="preposition">preposition</option>
+              <option value="conjunction">conjunction</option>
+              <option value="pronoun">pronoun</option>
+              <option value="phrase">phrase</option>
             </select>
           </label>
         </div>
-        <label><span>Chủ đề</span>
+        <label><span>Topic</span>
           <select name="topic_id" data-topic-select></select>
         </label>
-        <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
-          <input name="meaning_vi" required autocomplete="off" placeholder="vd: kiên trì">
+        <label><span>Vietnamese meaning <span class="req">*</span></span>
+          <input name="meaning_vi" required autocomplete="off" placeholder="e.g. kiên trì">
         </label>
-        <label>Câu ví dụ
-          <textarea name="example" rows="2" placeholder="vd: You must persevere to learn a language."></textarea>
+        <label>Example sentence
+          <textarea name="example" rows="2" placeholder="e.g. You must persevere to learn a language."></textarea>
         </label>
-        <label>Ghi chú cách dùng
-          <textarea name="usage_note" rows="3" placeholder="vd: persevere with / in sth"></textarea>
+        <label>Usage note
+          <textarea name="usage_note" rows="3" placeholder="e.g. persevere with / in sth"></textarea>
         </label>
         <p class="error" data-error hidden></p>
         <div class="row end">
-          <a class="btn ghost" href="#/">Huỷ</a>
-          <button class="btn primary" type="submit" data-submit>Lưu</button>
+          <a class="btn ghost" href="#/admin">Cancel</a>
+          <button class="btn primary" type="submit" data-submit>Save</button>
         </div>
       </form>
     </section>
   </template>
 
-  <!-- Ôn tập -->
+  <!-- My progress (each learner sees only their own) -->
+  <template id="tpl-progress">
+    <section>
+      <div class="hero">
+        <div>
+          <h1>My progress</h1>
+          <p class="muted">How you are doing, based on every answer you have checked in Practice.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn primary" href="#/review">Practice now</a>
+        </div>
+      </div>
+      <div class="stats" data-progress-stats></div>
+      <div class="progress-grid">
+        <div class="card">
+          <h2>Last 7 days</h2>
+          <div class="week" data-week></div>
+          <p class="muted legend"><span class="dot ok"></span> correct <span class="dot all"></span> wrong</p>
+        </div>
+        <div class="card">
+          <h2>Words to practice again</h2>
+          <p class="muted small">Your last answer for these was wrong.</p>
+          <ul class="review-list" data-to-review></ul>
+        </div>
+      </div>
+      <div class="card">
+        <h2>By topic</h2>
+        <p class="muted small"><span class="dot ok"></span> mastered (last answer right) <span class="dot seen"></span> practiced</p>
+        <div class="topic-progress" data-topic-progress></div>
+      </div>
+    </section>
+  </template>
+
+  <!-- Admin: manage the shared words, see learners' progress -->
+  <template id="tpl-admin">
+    <section>
+      <div class="hero">
+        <div>
+          <h1>Admin</h1>
+          <p class="muted">Manage the word bank every learner studies, and follow their progress.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn primary" href="#/admin/new">+ Add word</a>
+        </div>
+      </div>
+      <div class="stats" data-admin-stats></div>
+      <div class="tabs admin-tabs" role="tablist">
+        <a href="#/admin" data-admin-tab="words">Words</a>
+        <a href="#/admin?tab=learners" data-admin-tab="learners">Learners</a>
+      </div>
+
+      <div data-admin-words hidden>
+        <div class="toolbar">
+          <form class="search" data-search role="search">
+            <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+            <input type="search" name="q" placeholder="Search by word or meaning..." aria-label="Search" autocomplete="off">
+          </form>
+          <select data-admin-topic aria-label="Topic"></select>
+        </div>
+        <p class="muted count" data-count></p>
+        <div class="card table-card">
+          <table class="table">
+            <thead><tr><th>Word</th><th>Meaning</th><th>Topic</th><th class="hide-sm">Example</th><th></th></tr></thead>
+            <tbody data-rows></tbody>
+          </table>
+        </div>
+        <div class="row center"><button class="btn" data-more hidden>Show more</button></div>
+      </div>
+
+      <div data-admin-learners hidden>
+        <div class="card table-card">
+          <table class="table">
+            <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Practiced</th><th>Accuracy</th><th class="hide-sm">Last practice</th><th class="hide-sm">Joined</th></tr></thead>
+            <tbody data-learner-rows></tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+  </template>
+
+  <!-- Practice -->
   <template id="tpl-review">
     <section class="narrow">
       <div class="row">
-        <h1>Ôn tập</h1>
+        <h1>Practice</h1>
       </div>
       <div class="review-settings">
-        <label class="deck-size">Chủ đề
+        <label class="deck-size">Topic
           <select data-review-topic-select></select>
         </label>
-        <label class="deck-size">Số thẻ
+        <label class="deck-size">Cards
           <select data-size>
             <option value="10">10</option>
             <option value="20" selected>20</option>
             <option value="50">50</option>
-            <option value="0">Tất cả</option>
+            <option value="0">All</option>
           </select>
         </label>
       </div>
-      <div class="tabs mode" role="radiogroup" aria-label="Chiều ôn tập">
-        <button type="button" data-mode="en-vi">🇬🇧 Anh → Việt 🇻🇳</button>
-        <button type="button" data-mode="vi-en">🇻🇳 Việt → Anh 🇬🇧</button>
+      <div class="tabs mode" role="radiogroup" aria-label="Practice direction">
+        <button type="button" data-mode="en-vi">🇬🇧 English → Vietnamese 🇻🇳</button>
+        <button type="button" data-mode="vi-en">🇻🇳 Vietnamese → English 🇬🇧</button>
       </div>
       <div class="progress" aria-hidden="true"><div class="progress-bar" data-bar></div></div>
       <p class="muted progress-text" data-progress></p>
@@ -179,7 +260,7 @@
       <div class="card flash" data-card>
         <div class="flash-top">
           <span class="badge" data-pos></span>
-          <button class="icon-btn" data-speak title="Nghe phát âm" aria-label="Nghe phát âm">
+          <button class="icon-btn" data-speak title="Listen" aria-label="Listen">
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
           </button>
         </div>
@@ -189,36 +270,36 @@
 
         <form class="answer-form" data-answer-form autocomplete="off">
           <input name="answer" data-input autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200">
-          <button class="btn primary" type="submit" data-check>Kiểm tra</button>
+          <button class="btn primary" type="submit" data-check>Check</button>
         </form>
         <div class="row center small-actions" data-before>
-          <button type="button" class="btn small ghost" data-hint-btn>Gợi ý</button>
-          <button type="button" class="btn small ghost" data-skip>Không biết</button>
+          <button type="button" class="btn small ghost" data-hint-btn>Hint</button>
+          <button type="button" class="btn small ghost" data-skip>I don't know</button>
         </div>
 
         <div class="feedback" data-feedback hidden>
           <p class="verdict" data-verdict></p>
-          <p class="expected"><span class="muted">Đáp án:</span> <strong data-expected></strong></p>
+          <p class="expected"><span class="muted">Answer:</span> <strong data-expected></strong></p>
           <p class="example" data-example></p>
           <p class="note" data-note></p>
           <div class="row center">
-            <button type="button" class="btn small ghost" data-override hidden>Tôi trả lời đúng</button>
-            <button type="button" class="btn primary" data-next>Tiếp tục <kbd>Enter</kbd></button>
+            <button type="button" class="btn small ghost" data-override hidden>I was right</button>
+            <button type="button" class="btn primary" data-next>Continue <kbd>Enter</kbd></button>
           </div>
         </div>
       </div>
 
       <div class="card done" data-done hidden>
         <div class="ring" data-ring><span data-percent></span></div>
-        <p class="big">Hoàn thành lượt ôn!</p>
+        <p class="big">Round complete!</p>
         <p class="muted" data-summary></p>
         <div class="missed" data-missed-box hidden>
-          <p class="missed-title">Từ cần ôn lại</p>
+          <p class="missed-title">Words to practice again</p>
           <ul data-missed></ul>
         </div>
         <div class="row center">
-          <button class="btn primary" data-again>Ôn lượt mới</button>
-          <a class="btn" href="#/">Về danh sách</a>
+          <button class="btn primary" data-again>New round</button>
+          <a class="btn" href="#/">Back to words</a>
         </div>
       </div>
     </section>

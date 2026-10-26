@@ -1,5 +1,5 @@
 # app/schemas.py — the shapes of the JSON going in and out of the API.
-from datetime import datetime
+from datetime import date, datetime
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -12,7 +12,7 @@ class WordCreate(BaseModel):
     # Left empty when the AI is busy; the user can fill them in later.
     example: str | None = None
     usage_note: str | None = None
-    topic_id: int | None = None  # None = "Chưa phân loại"
+    topic_id: int | None = None  # None = "Uncategorized"
 
 
 class WordUpdate(BaseModel):
@@ -79,6 +79,11 @@ class RegisterIn(BaseModel):
 class LoginIn(BaseModel):
     email: str = Field(max_length=254)
     password: str = Field(max_length=128)
+    # True from the "Admin" sign-in form: only admin accounts may log in there.
+    admin: bool = False
+
+
+Role = Literal["learner", "admin"]
 
 
 class User(BaseModel):
@@ -86,4 +91,46 @@ class User(BaseModel):
     id: int
     email: str
     display_name: str
+    role: Role
     created_at: datetime
+
+
+class TopicProgress(BaseModel):
+    id: int
+    slug: str
+    name: str
+    icon: str
+    total: int  # words in the topic
+    practiced: int  # of those, words this user has answered at least once
+    mastered: int  # of those, words whose latest answer was right
+
+
+class DayActivity(BaseModel):
+    day: date
+    answered: int
+    correct: int
+
+
+class WordToReview(BaseModel):
+    id: int
+    word: str
+    meaning_vi: str
+    forgot: int
+
+
+class Progress(BaseModel):
+    answered: int
+    correct: int
+    practiced: int
+    mastered: int
+    total_words: int
+    topics: list[TopicProgress]
+    last_7_days: list[DayActivity]
+    to_review: list[WordToReview]
+
+
+class UserSummary(User):
+    # One row of the admin page's learner table.
+    review_count: int
+    remembered_count: int
+    last_review_at: datetime | None
