@@ -35,6 +35,20 @@ class ReviewCreate(BaseModel):
     result: ReviewResult
 
 
+Direction = Literal["en-vi", "vi-en"]
+
+
+class AnswerIn(BaseModel):
+    direction: Direction
+    answer: str = Field(max_length=200)
+
+
+class AnswerResult(BaseModel):
+    verdict: Literal["correct", "accent", "close", "wrong"]
+    correct: bool
+    expected: str
+
+
 class Review(BaseModel):
     id: int
     word_id: int

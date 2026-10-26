@@ -6,8 +6,17 @@ import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 
 from app.auth import CurrentUser, get_conn
+from app.grading import check
 from app.repository import DuplicateWord, WordRepository
-from app.schemas import Review, ReviewCreate, Word, WordCreate, WordUpdate
+from app.schemas import (
+    AnswerIn,
+    AnswerResult,
+    Review,
+    ReviewCreate,
+    Word,
+    WordCreate,
+    WordUpdate,
+)
 
 router = APIRouter(prefix="/api")
 
@@ -62,6 +71,16 @@ def delete_word(word_id: int, repo: Repo):
     if not repo.delete_word(word_id):
         raise not_found()
     return Response(status_code=204)
+
+
+@router.post("/words/{word_id}/check", response_model=AnswerResult)
+def check_answer(word_id: int, body: AnswerIn, repo: Repo):
+    # Grades only; the page then logs the final result with POST .../reviews, so the
+    # learner can still overrule a "wrong" (e.g. a synonym) before it is saved.
+    word = repo.get_word(word_id)
+    if word is None:
+        raise not_found()
+    return check(word, body.direction, body.answer)
 
 
 @router.post("/words/{word_id}/reviews", response_model=Review, status_code=201)
