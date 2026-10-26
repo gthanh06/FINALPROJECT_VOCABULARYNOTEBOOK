@@ -78,7 +78,7 @@ h1 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 4px; }
 .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; color: var(--text); font-size: 1.05rem; }
 .logo {
   display: grid; place-items: center; width: 32px; height: 32px; border-radius: 9px;
-  background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 0.85rem;
+  background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #fff; font-size: 0.85rem; font-weight: 700;
 }
 .topbar nav { display: flex; gap: 2px; background: var(--surface-2); padding: 3px; border-radius: 10px; }
 .topbar nav a { padding: 6px 14px; border-radius: 8px; color: var(--muted); font-weight: 500; font-size: 0.92rem; }
@@ -222,6 +222,29 @@ textarea { resize: vertical; }
   display: grid; place-items: center; font-size: 1.6rem; font-weight: 800;
 }
 
+/* ---------- Account ---------- */
+.user { display: flex; align-items: center; gap: 8px; }
+.avatar {
+  display: grid; place-items: center; width: 30px; height: 30px; border-radius: 50%;
+  background: var(--primary-soft); color: var(--primary); font-weight: 700; font-size: 0.85rem;
+}
+.user-name { font-weight: 600; font-size: 0.9rem; max-width: 160px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.btn.small { padding: 5px 10px; font-size: 0.85rem; }
+.btn.block { width: 100%; }
+
+.auth { min-height: calc(100vh - 160px); display: grid; place-items: center; }
+.auth-card { width: 100%; max-width: 420px; padding: 32px 28px; text-align: center; }
+.auth-card h1 { margin-top: 14px; }
+.auth-card .form { padding: 0; text-align: left; margin-top: 4px; }
+.logo.lg { width: 52px; height: 52px; border-radius: 14px; font-size: 1.2rem; margin: 0 auto; }
+.tabs { display: flex; background: var(--surface-2); padding: 4px; border-radius: 10px; margin: 18px 0; }
+.tabs a { flex: 1; padding: 8px; border-radius: 8px; color: var(--muted); font-weight: 600; font-size: 0.92rem; }
+.tabs a.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.password { position: relative; display: block; }
+.password input { padding-right: 64px; }
+.password .btn { position: absolute; right: 4px; top: 50%; transform: translateY(-50%); color: var(--muted); }
+.switch { margin: 18px 0 0; font-size: 0.9rem; }
+
 #toast {
   position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); z-index: 20;
   background: var(--text); color: var(--bg); padding: 10px 18px; border-radius: 10px;
@@ -234,4 +257,5 @@ textarea { resize: vertical; }
   .flash-word { font-size: 2rem; }
   .topbar nav a { padding: 6px 10px; }
   .btn.lg { min-width: 0; flex: 1; }
+  .user-name { display: none; }
 }

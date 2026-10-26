@@ -1,20 +1,21 @@
 # app/routes.py — CRUD API for words and their review logs.
-from collections.abc import Iterator
+# Every route needs a logged-in user and only sees that user's notebook.
 from typing import Annotated
 
+import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 
-from app.db import connect
+from app.auth import CurrentUser, get_conn
 from app.repository import DuplicateWord, WordRepository
 from app.schemas import Review, ReviewCreate, Word, WordCreate, WordUpdate
 
 router = APIRouter(prefix="/api")
 
 
-def get_repo() -> Iterator[WordRepository]:
-    # One connection per request; leaving the "with" commits, an exception rolls back.
-    with connect() as conn:
-        yield WordRepository(conn)
+def get_repo(
+    conn: Annotated[psycopg.Connection, Depends(get_conn)], user: CurrentUser
+) -> WordRepository:
+    return WordRepository(conn, user["id"])
 
 
 Repo = Annotated[WordRepository, Depends(get_repo)]
