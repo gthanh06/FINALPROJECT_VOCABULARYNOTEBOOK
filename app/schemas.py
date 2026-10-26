@@ -66,6 +66,36 @@ class Review(BaseModel):
     result: ReviewResult
 
 
+class ImportIn(BaseModel):
+    csv: str = Field(max_length=3_000_000)  # about 3 MB of text
+    # False: words already in the bank are skipped. True: they are overwritten.
+    update_existing: bool = False
+    # True: only check the file and report, save nothing.
+    dry_run: bool = True
+
+
+class ImportLineError(BaseModel):
+    line: int
+    message: str
+
+
+class ImportPreviewRow(BaseModel):
+    word: str
+    meaning_vi: str
+    part_of_speech: str | None
+    topic_id: int | None
+    exists: bool
+
+
+class ImportResult(BaseModel):
+    saved: bool
+    total: int  # valid rows in the file
+    new: int
+    existing: int  # updated if update_existing, otherwise skipped
+    errors: list[ImportLineError]
+    sample: list[ImportPreviewRow]  # the first rows, to eyeball before saving
+
+
 # A light email check; the real proof would be a confirmation email.
 EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
 

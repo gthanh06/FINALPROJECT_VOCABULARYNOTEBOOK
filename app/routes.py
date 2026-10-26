@@ -6,12 +6,15 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 
+from app import importer
 from app.auth import AdminUser, CurrentUser, get_conn, get_users
 from app.grading import check
 from app.repository import DuplicateWord, UnknownTopic, UserRepository, WordRepository
 from app.schemas import (
     AnswerIn,
     AnswerResult,
+    ImportIn,
+    ImportResult,
     Progress,
     Review,
     ReviewCreate,
@@ -129,3 +132,39 @@ def my_progress(repo: Repo):
 @router.get("/admin/users", response_model=list[UserSummary])
 def list_users(users: Annotated[UserRepository, Depends(get_users)], _: AdminUser):
     return users.list_users()
+
+
+@router.post("/admin/import", response_model=ImportResult)
+def import_csv(body: ImportIn, repo: Repo, _: AdminUser):
+    # First call with dry_run=true to see what would happen, then again with false to save.
+    try:
+        rows, errors = importer.parse(body.csv, repo.list_topics())
+    except importer.BadCsv as err:
+        raise HTTPException(status_code=422, detail=str(err)) from None
+    existing = repo.existing_words([r["word"] for r in rows])
+    result = {
+        "saved": False,
+        "total": len(rows),
+        "new": sum(r["word"].lower() not in existing for r in rows),
+        "existing": sum(r["word"].lower() in existing for r in rows),
+        "errors": errors[:100],
+        "sample": [{**r, "exists": r["word"].lower() in existing} for r in rows[:20]],
+    }
+    if body.dry_run:
+        return result
+    if errors:
+        # Nothing is saved from a file with mistakes: fix the lines and try again.
+        raise HTTPException(
+            status_code=422, detail=f"Fix the {len(errors)} line(s) with errors first"
+        )
+    repo.import_words(rows, body.update_existing)
+    return {**result, "saved": True}
+
+
+@router.get("/admin/words.csv")
+def export_csv(repo: Repo, _: AdminUser):
+    return Response(
+        content=importer.to_csv(repo.list_words(), repo.list_topics()),
+        media_type="text/csv; charset=utf-8",
+        headers={"Content-Disposition": 'attachment; filename="vocabulary.csv"'},
+    )

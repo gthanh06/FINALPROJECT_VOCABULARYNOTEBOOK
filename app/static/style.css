@@ -304,6 +304,19 @@ section > .card h2, .progress-grid h2 { font-size: 1rem; margin: 0 0 4px; }
 
 /* ---------- Admin ---------- */
 .admin-tabs { max-width: 360px; margin: 0 0 16px; }
+.import-card { margin-bottom: 20px; display: grid; gap: 10px; border-color: var(--primary); }
+.import-card h2 { font-size: 1.05rem; margin: 0; }
+.import-card p { margin: 0; }
+.import-card code { font-size: 0.82rem; background: var(--surface-2); padding: 1px 5px; border-radius: 5px; }
+.import-controls { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.import-controls input[type="file"] { width: auto; }
+.check { display: flex; gap: 8px; align-items: center; font-size: 0.9rem; cursor: pointer; }
+.check input { width: auto; }
+.import-summary { font-size: 0.95rem; }
+.import-summary .bad { color: var(--danger); font-weight: 600; }
+.import-errors { margin: 0; padding-left: 18px; color: var(--danger); font-size: 0.88rem; display: grid; gap: 2px; }
+.import-errors:empty { display: none; }
+.import-card .table-card { max-height: 360px; overflow: auto; margin: 0; border: 1px solid var(--border); border-radius: 10px; }
 .table-card { padding: 0; overflow-x: auto; margin-bottom: 16px; }
 .table { width: 100%; border-collapse: collapse; font-size: 0.92rem; }
 .table th {

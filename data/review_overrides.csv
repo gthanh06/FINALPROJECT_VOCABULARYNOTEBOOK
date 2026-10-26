@@ -1,0 +1,639 @@
+word,meaning_vi,part_of_speech,topic
+say,nói,verb,
+like,"thích; giống như",verb,
+people,"người, mọi người; nhân dân",noun,
+take,"lấy, cầm; mang đi",verb,
+well,"tốt, giỏi; khỏe",adverb,
+very,"rất, lắm",adverb,
+just,"vừa mới; chỉ",adverb,
+work,"công việc; làm việc",noun,work
+use,"sử dụng, dùng",verb,
+only,"chỉ; duy nhất",adverb,
+want,muốn,verb,
+first,"đầu tiên; trước tiên",,
+way,"cách; đường đi",noun,
+day,ngày,noun,
+thing,"đồ vật; điều, việc",noun,
+need,cần,verb,
+right,"đúng; bên phải; quyền",adjective,
+back,"lưng; phía sau",noun,health
+mean,"có nghĩa là; muốn nói",verb,
+even,"ngay cả, thậm chí",adverb,
+call,"gọi; cuộc gọi",verb,
+company,"công ty; sự bầu bạn",noun,work
+show,"cho xem, chỉ ra; buổi biểu diễn",verb,
+life,"cuộc sống, sự sống",noun,
+man,"người đàn ông; con người",noun,
+feel,cảm thấy,verb,feelings
+too,"quá; cũng",adverb,
+still,"vẫn, vẫn còn",adverb,
+write,,,study
+lot,"nhiều (a lot of)",noun,
+leave,"rời đi; để lại",verb,
+point,"điểm; ý; chỉ vào",noun,
+help,"giúp đỡ; sự giúp đỡ",verb,
+talk,"nói chuyện; cuộc nói chuyện",verb,
+interest,"sự quan tâm, sở thích; lãi suất",noun,
+old,"già; cũ",adjective,
+school,,,study
+next,"tiếp theo, kế tiếp",adjective,
+end,"sự kết thúc; cuối",noun,
+live,sống,verb,
+play,"chơi; vở kịch",verb,
+home,"nhà, tổ ấm",noun,home
+course,"khóa học; quá trình",noun,study
+house,,,home
+report,,,work
+group,nhóm,noun,
+book,"quyển sách; đặt (vé, phòng)",noun,study
+family,,,daily
+kind,"loại; tử tế",noun,
+system,,,academic
+question,"câu hỏi; vấn đề",noun,study
+set,"bộ; đặt, để",noun,
+study,"sự học tập; học, nghiên cứu",noun,study
+follow,"theo, đi theo; làm theo",verb,
+since,"từ khi; vì",conjunction,
+turn,"rẽ, quay; lượt",verb,
+few,"ít, vài",adjective,
+bring,"mang lại, đem đến",verb,
+hand,bàn tay,noun,health
+state,"trạng thái; bang, nhà nước",noun,
+money,,,daily
+fact,"sự thật, sự việc",noun,academic
+however,tuy nhiên,adverb,academic
+area,"khu vực; diện tích",noun,
+provide,cung cấp,verb,academic
+read,đọc,verb,study
+friend,,,daily
+business,"kinh doanh; công việc",noun,work
+information,thông tin,noun,technology
+government,chính phủ,noun,academic
+word,"từ; lời nói",noun,study
+issue,"vấn đề; số (báo)",noun,academic
+market,"chợ; thị trường",noun,work
+pay,,,work
+build,xây dựng,verb,
+service,"dịch vụ; sự phục vụ",noun,work
+second,"thứ hai; giây",adjective,
+love,"tình yêu; yêu",noun,feelings
+increase,"sự tăng; tăng",noun,academic
+job,,,work
+plan,kế hoạch,noun,work
+result,,,academic
+example,,,study
+happen,xảy ra,verb,
+offer,"đề nghị; mời, tặng",verb,
+close,"đóng; gần",verb,
+program,chương trình,noun,technology
+lead,"dẫn dắt, lãnh đạo; sự dẫn đầu",verb,work
+buy,,,daily
+student,"học sinh, sinh viên",noun,study
+face,"khuôn mặt; đối mặt",noun,health
+hope,,,feelings
+idea,"ý tưởng, ý kiến",noun,
+cost,"chi phí; tốn",noun,work
+room,"phòng; chỗ trống",noun,home
+reason,lý do,noun,
+form,"hình thức; mẫu đơn; hình thành",noun,
+spend,"tiêu (tiền); dành (thời gian)",verb,
+head,đầu,noun,health
+car,,,travel
+learn,,,study
+level,"mức, cấp độ",noun,
+experience,"kinh nghiệm; trải nghiệm",noun,
+member,thành viên,noun,
+city,,,travel
+able,"có thể, có khả năng",adjective,
+support,"ủng hộ, hỗ trợ",verb,
+line,"dòng; hàng; đường kẻ",noun,
+present,"hiện tại; món quà; trình bày",noun,
+side,"bên, phía; mặt",noun,
+quite,"khá; hoàn toàn",adverb,
+term,"thuật ngữ; học kỳ; kỳ hạn",noun,study
+age,"tuổi; thời đại",noun,
+process,,,academic
+public,"công chúng; công cộng",adjective,
+train,tàu hỏa,noun,travel
+possible,có thể,adjective,
+rather,"khá; thà... hơn",adverb,
+view,"quang cảnh; quan điểm",noun,
+price,giá cả,noun,daily
+parent,"cha mẹ (bố hoặc mẹ)",noun,daily
+hard,"khó; chăm chỉ; cứng",adjective,
+party,"bữa tiệc; đảng",noun,
+local,địa phương,adjective,
+control,"kiểm soát; sự điều khiển",noun,
+concern,"mối lo ngại; liên quan",noun,
+product,sản phẩm,noun,work
+lose,"mất; thua",verb,
+stand,"đứng; chịu đựng",verb,
+whole,"toàn bộ, cả",adjective,
+rate,"tỷ lệ; mức giá",noun,academic
+care,"sự chăm sóc; quan tâm",noun,health
+effect,"tác động, ảnh hưởng; kết quả",noun,academic
+anything,"bất cứ thứ gì; cái gì",pronoun,
+cause,"nguyên nhân; gây ra",noun,academic
+fall,"ngã, rơi; mùa thu",verb,
+deal,"thỏa thuận; giải quyết",noun,work
+water,,,daily
+soon,"sớm, chẳng bao lâu nữa",adverb,
+watch,"xem; đồng hồ đeo tay",verb,
+probably,"có lẽ, có thể",adverb,
+past,"quá khứ; qua",noun,
+power,"sức mạnh; quyền lực; điện",noun,
+test,"bài kiểm tra; kiểm tra",noun,study
+visit,,,travel
+center,trung tâm,noun,
+grow,"lớn lên, phát triển; trồng",verb,
+nothing,không có gì,pronoun,
+return,"trở lại; trả lại",verb,travel
+mother,,,daily
+walk,đi bộ,verb,health
+matter,"vấn đề; có ý nghĩa",noun,
+mind,"tâm trí; phiền (do you mind)",noun,
+value,,,academic
+office,văn phòng,noun,work
+record,"hồ sơ, bản ghi; ghi lại",noun,
+stay,"ở lại; lưu trú",verb,travel
+stop,dừng lại,verb,
+light,"ánh sáng; nhẹ",noun,
+develop,phát triển,verb,academic
+bit,"một chút, một mẩu",noun,
+share,"chia sẻ; cổ phần",verb,
+answer,"câu trả lời; trả lời",noun,study
+figure,"con số; hình dáng",noun,
+letter,"lá thư; chữ cái",noun,
+decide,quyết định,verb,
+language,,,study
+subject,"môn học; chủ đề",noun,study
+class,"lớp học; tầng lớp",noun,study
+development,sự phát triển,noun,academic
+town,,,travel
+food,,,food
+break,"làm vỡ; giờ nghỉ",verb,
+clear,"rõ ràng; trong",adjective,
+per,"mỗi, trên mỗi",preposition,
+remain,"vẫn còn; ở lại",verb,
+top,"đỉnh, phía trên",noun,
+win,"thắng, chiến thắng",verb,
+color,màu sắc,noun,
+involve,"liên quan đến; bao gồm",verb,
+reach,"đạt tới, với tới",verb,
+social,thuộc xã hội,adjective,academic
+period,"giai đoạn, thời kỳ; tiết học",noun,
+across,"băng qua, ngang qua",preposition,
+note,"ghi chú; ghi lại",noun,study
+history,,,study
+drive,lái (xe),verb,travel
+type,"loại, kiểu; gõ (máy)",noun,
+sound,"âm thanh; nghe có vẻ",noun,
+eye,,,health
+game,,,daily
+political,,,academic
+free,"tự do; miễn phí",adjective,
+sale,"sự bán; đợt giảm giá",noun,work
+policy,,,academic
+further,"xa hơn; thêm nữa",adverb,
+body,,,health
+wait,"chờ, đợi",verb,
+general,"chung, tổng quát",adjective,
+appear,"xuất hiện; có vẻ",verb,
+team,"đội, nhóm",noun,work
+easy,"dễ, dễ dàng",adjective,
+individual,cá nhân,noun,
+sense,"giác quan; ý nghĩa; cảm giác",noun,
+add,"thêm vào; cộng",verb,
+pass,"đi qua; vượt qua (kỳ thi); đưa",verb,
+produce,"sản xuất, tạo ra",verb,work
+sell,bán,verb,work
+law,,,academic
+cover,"che phủ; bìa",verb,
+paper,"giấy; bài báo",noun,study
+position,"vị trí; chức vụ",noun,work
+human,"con người; thuộc con người",adjective,
+computer,,,technology
+situation,"tình huống, hoàn cảnh",noun,
+staff,nhân viên (tập thể),noun,work
+activity,hoạt động,noun,
+film,"bộ phim; phim chụp ảnh",noun,
+account,"tài khoản; bản tường thuật",noun,technology
+shop,,,daily
+major,"chính, chủ yếu; chuyên ngành",adjective,study
+design,thiết kế,noun,work
+special,đặc biệt,adjective,
+father,,,daily
+decision,quyết định,noun,work
+forward,về phía trước,adverb,
+main,"chính, chủ yếu",adjective,
+die,chết,verb,
+available,"có sẵn; rảnh",adjective,
+strong,"mạnh, khỏe; chắc",adjective,
+rise,"tăng lên; mọc (mặt trời)",verb,
+join,"tham gia; nối",verb,
+please,"làm ơn; làm hài lòng",verb,
+detail,chi tiết,noun,
+difference,sự khác biệt,noun,
+action,hành động,noun,
+health,,,health
+phone,,,technology
+draw,"vẽ; kéo",verb,
+date,"ngày tháng; cuộc hẹn",noun,
+practice,"sự luyện tập; thực hành",noun,study
+raise,"nâng lên; nuôi nấng",verb,
+customer,,,work
+front,"phía trước, mặt trước",noun,
+explain,,,study
+door,,,home
+outside,bên ngoài,noun,
+economic,,,academic
+site,"địa điểm; trang web",noun,technology
+teacher,,,study
+land,"đất; hạ cánh",noun,
+charge,"phí; sạc (pin); buộc tội",noun,
+sign,"dấu hiệu; biển báo; ký tên",noun,
+claim,"cho rằng, khẳng định; đòi hỏi",verb,
+travel,,,travel
+enjoy,,,feelings
+nice,"đẹp, tốt, dễ chịu",adjective,
+amount,số lượng,noun,
+regard,"coi như, xem như; sự quan tâm",verb,
+organization,tổ chức,noun,work
+happy,"vui vẻ, hạnh phúc",adjective,feelings
+couple,"cặp, đôi; vài",noun,
+act,"hành động; đạo luật",verb,
+range,"phạm vi, dải",noun,
+project,dự án,noun,work
+round,"tròn; vòng",adjective,
+road,,,travel
+accord,"sự đồng thuận, sự phù hợp",noun,
+list,danh sách,noun,
+wish,"mong ước; điều ước",verb,
+therefore,,,academic
+wear,"mặc, đội, đeo",verb,
+fund,"quỹ, tiền quỹ",noun,work
+rest,"sự nghỉ ngơi; phần còn lại",noun,
+kid,đứa trẻ,noun,
+industry,,,work
+education,,,study
+measure,"đo; biện pháp",verb,
+serve,phục vụ,verb,
+likely,"có khả năng, có thể xảy ra",adjective,
+national,thuộc quốc gia,adjective,
+teach,,,study
+field,"cánh đồng; lĩnh vực",noun,
+security,"an ninh, sự an toàn",noun,technology
+air,,,environment
+trade,"thương mại; buôn bán",noun,work
+risk,rủi ro,noun,
+vote,"bỏ phiếu; lá phiếu",verb,
+percent,,,academic
+focus,tập trung,verb,study
+stage,"giai đoạn; sân khấu",noun,
+space,"không gian; khoảng trống",noun,
+instead,"thay vì, thay vào đó",adverb,
+realize,"nhận ra; thực hiện",verb,
+data,dữ liệu,noun,technology
+performance,"sự thể hiện, thành tích; buổi biểu diễn",noun,work
+chance,"cơ hội; sự may rủi",noun,
+society,,,academic
+technology,,,technology
+mention,"đề cập, nhắc đến",verb,
+save,"cứu; tiết kiệm; lưu",verb,
+common,"phổ biến, chung",adjective,
+culture,văn hóa,noun,travel
+demand,"nhu cầu; đòi hỏi",noun,work
+material,"vật liệu; tài liệu",noun,
+listen,,,study
+due,"đến hạn; do, vì",adjective,
+wrong,sai,adjective,
+foot,,,health
+check,kiểm tra,verb,
+complete,"hoàn thành; đầy đủ",adjective,
+lie,"nói dối; nằm",verb,
+pick,"chọn; nhặt, hái",verb,
+animal,,,animals
+arrive,,,travel
+current,"hiện tại, hiện hành",adjective,
+fight,"đánh nhau; chiến đấu",verb,
+leader,,,work
+fine,"tốt, ổn; tiền phạt",adjective,
+street,,,travel
+contact,"liên lạc; sự tiếp xúc",noun,
+wife,,,daily
+sport,,,health
+prepare,chuẩn bị,verb,
+response,"sự phản hồi, câu trả lời",noun,
+apply,"nộp đơn; áp dụng",verb,work
+president,"tổng thống; chủ tịch",noun,
+fire,"lửa; đám cháy; sa thải",noun,
+court,"tòa án; sân (thể thao)",noun,
+police,cảnh sát,noun,
+store,"cửa hàng; lưu trữ",noun,daily
+laugh,"cười; tiếng cười",verb,feelings
+arm,,,health
+heart,,,health
+source,nguồn,noun,academic
+manage,"quản lý; xoay xở",verb,work
+simply,"chỉ đơn giản là; một cách đơn giản",adverb,
+bank,"ngân hàng; bờ (sông)",noun,work
+firm,"công ty; chắc chắn",noun,work
+cell,"tế bào; điện thoại di động",noun,health
+article,"bài báo; mạo từ",noun,
+fast,nhanh,adjective,
+foreign,nước ngoài,adjective,travel
+surprise,,,feelings
+pretty,"xinh xắn; khá",adjective,
+drop,"làm rơi; giọt",verb,
+relate,"liên quan, liên hệ",verb,
+official,"chính thức; quan chức",adjective,
+financial,,,work
+miss,"nhớ (ai đó); lỡ, trượt",verb,feelings
+art,nghệ thuật,noun,
+everyone,"mọi người, tất cả mọi người",pronoun,
+forget,quên,verb,
+page,trang (sách),noun,study
+worry,lo lắng,verb,feelings
+summer,mùa hè,noun,environment
+drink,,,food
+represent,"đại diện cho; tượng trưng",verb,
+inside,bên trong,noun,
+international,quốc tế,adjective,travel
+notice,"để ý, nhận thấy; thông báo",verb,
+wonder,"tự hỏi; điều kỳ diệu",verb,
+nature,,,environment
+structure,,,academic
+section,"phần, mục",noun,
+plant,"cây, thực vật; nhà máy",noun,environment
+paint,"sơn; vẽ (tranh)",verb,home
+worker,,,work
+press,"ấn, nhấn; báo chí",verb,
+whatever,bất cứ thứ gì,pronoun,
+necessary,cần thiết,adjective,
+growth,,,academic
+respect,,,feelings
+thus,,,academic
+skill,kỹ năng,noun,work
+attempt,"cố gắng, nỗ lực",verb,
+son,,,daily
+medium,"phương tiện; cỡ vừa",noun,
+average,trung bình,noun,academic
+stock,"hàng tồn kho; cổ phiếu",noun,work
+management,,,work
+character,"tính cách; nhân vật",noun,feelings
+economy,nền kinh tế,noun,academic
+fit,"vừa vặn; khỏe mạnh",adjective,
+guy,"anh chàng, gã",noun,
+behavior,"hành vi, cách cư xử",noun,
+addition,"sự thêm vào; phép cộng",noun,
+station,"nhà ga, trạm",noun,travel
+population,,,academic
+fail,"thất bại; trượt (kỳ thi)",verb,study
+production,sự sản xuất,noun,work
+player,"người chơi, cầu thủ",noun,
+enter,"đi vào; nhập (dữ liệu)",verb,
+drug,"thuốc; ma túy",noun,health
+wall,,,home
+direct,"trực tiếp; thẳng",adjective,
+director,"giám đốc; đạo diễn",noun,work
+lack,"sự thiếu; thiếu",noun,
+review,"đánh giá; ôn lại; sự xem xét",noun,study
+race,"cuộc đua; chủng tộc",noun,
+recognize,"nhận ra; công nhận",verb,
+window,,,home
+department,"phòng, ban; khoa",noun,work
+gain,"đạt được; lợi ích",verb,
+tree,,,environment
+college,,,study
+argue,"tranh cãi; lập luận",verb,
+board,"bảng; hội đồng; tấm ván",noun,
+holiday,,,travel
+mark,"điểm số; dấu",noun,study
+item,"món, mục, khoản",noun,
+season,mùa,noun,environment
+floor,,,home
+stuff,"đồ đạc, thứ",noun,
+method,,,academic
+analysis,,,academic
+election,cuộc bầu cử,noun,academic
+hotel,,,travel
+club,câu lạc bộ,noun,
+below,"ở dưới, bên dưới",adverb,
+movie,,,daily
+doctor,,,health
+discussion,,,study
+sorry,"xin lỗi; lấy làm tiếc",adjective,feelings
+statement,"lời tuyên bố; bản báo cáo",noun,
+link,"đường liên kết; liên kết",noun,technology
+marry,,,daily
+strike,"đánh; cuộc đình công",verb,
+unit,đơn vị,noun,
+card,"thẻ; thiệp",noun,
+hospital,,,health
+agreement,"sự đồng ý; hợp đồng",noun,work
+release,"phát hành; giải phóng",verb,
+tax,thuế,noun,work
+capital,"thủ đô; vốn; chữ hoa",noun,
+popular,"phổ biến, được ưa chuộng",adjective,
+specific,cụ thể,adjective,academic
+fear,,,feelings
+aim,"mục tiêu; nhằm",noun,
+television,"tivi, truyền hình",noun,daily
+serious,"nghiêm trọng; nghiêm túc",adjective,
+target,mục tiêu,noun,
+red,"đỏ; màu đỏ",adjective,
+husband,chồng,noun,daily
+access,"quyền truy cập; lối vào",noun,technology
+treat,"đối xử; điều trị; chiêu đãi",verb,
+loss,"sự mất mát; sự thua lỗ",noun,
+bus,,,travel
+treatment,"sự điều trị; sự đối xử",noun,health
+conference,,,work
+supply,"sự cung cấp; nguồn cung",noun,
+village,,,travel
+worth,"đáng giá, đáng",adjective,
+natural,,,environment
+express,"bày tỏ, diễn đạt",verb,
+attend,"tham dự, tham gia",verb,study
+brother,"anh trai, em trai",noun,daily
+investment,,,work
+score,"điểm số; ghi bàn",noun,
+trip,,,travel
+sleep,,,health
+potential,,,academic
+energy,"năng lượng; nghị lực",noun,environment
+trouble,"rắc rối, sự phiền toái",noun,
+relation,mối quan hệ,noun,
+file,"tập tin; hồ sơ",noun,technology
+middle,"ở giữa; phần giữa",noun,
+bar,"quán bar; thanh",noun,
+suffer,,,health
+except,ngoại trừ,preposition,
+clean,,,home
+tend,có xu hướng,verb,
+advance,"tiến bộ; tiến lên",verb,
+operation,"hoạt động; ca phẫu thuật",noun,
+match,"trận đấu; que diêm; phù hợp",noun,
+seat,,,travel
+task,,,work
+normal,bình thường,adjective,
+goal,"mục tiêu; bàn thắng",noun,
+associate,"liên tưởng, liên kết; đồng nghiệp",verb,
+positive,"tích cực; dương tính",adjective,
+message,,,technology
+instance,"trường hợp, ví dụ",noun,
+style,"phong cách, kiểu",noun,
+refer,"đề cập đến; tham khảo",verb,
+push,đẩy,verb,
+assume,"cho rằng, giả định",verb,academic
+theory,,,academic
+reference,"sự tham khảo; tài liệu tham khảo",noun,academic
+argument,"cuộc tranh cãi; lý lẽ",noun,
+fly,"bay; con ruồi",verb,travel
+document,"tài liệu, văn bản",noun,work
+pattern,"mẫu, khuôn mẫu; hoa văn",noun,
+application,"đơn xin; ứng dụng",noun,technology
+obviously,rõ ràng là,adverb,
+unclear,không rõ ràng,adjective,
+bill,"hóa đơn; dự luật",noun,daily
+search,tìm kiếm,verb,technology
+separate,"tách ra; riêng biệt",verb,
+career,,,work
+anyway,dù sao đi nữa,adverb,
+speech,"bài phát biểu; lời nói",noun,
+officer,"sĩ quan; viên chức",noun,
+dress,"váy; mặc quần áo",noun,
+profit,lợi nhuận,noun,work
+fun,"niềm vui; vui",noun,
+protect,,,environment
+resource,"tài nguyên; nguồn lực",noun,environment
+science,,,study
+disease,,,health
+balance,sự cân bằng,noun,
+damage,"thiệt hại; làm hư hại",noun,
+hair,,,health
+male,"nam, giống đực",adjective,
+operate,"vận hành; phẫu thuật",verb,
+reflect,"phản ánh; phản chiếu",verb,
+exercise,"bài tập; tập thể dục",noun,health
+restaurant,,,food
+income,,,work
+property,"tài sản; bất động sản",noun,
+okay,"được, ổn",adjective,
+earn,kiếm (tiền),verb,work
+daughter,,,daily
+post,"bài đăng; bưu điện; đăng",noun,
+define,"định nghĩa; xác định",verb,academic
+conclusion,kết luận,noun,academic
+clock,đồng hồ (treo tường),noun,home
+everybody,"mọi người, tất cả mọi người",pronoun,
+weekend,,,daily
+perform,"biểu diễn; thực hiện",verb,
+professional,chuyên nghiệp,adjective,work
+debate,,,academic
+green,"màu xanh lá; xanh",adjective,
+credit,"tín dụng; sự ghi nhận",noun,work
+extend,"mở rộng; kéo dài",verb,
+direction,"phương hướng; sự chỉ dẫn",noun,
+facility,"cơ sở vật chất, tiện nghi",noun,
+variety,sự đa dạng,noun,
+daily,hằng ngày,adjective,
+clothes,,,daily
+screen,màn hình,noun,technology
+track,"đường ray; dấu vết; theo dõi",noun,
+female,"nữ, giống cái",adjective,
+original,"nguyên bản, gốc",adjective,
+sister,"chị gái, em gái",noun,daily
+university,trường đại học,noun,study
+easily,dễ dàng,adverb,
+agency,"cơ quan; đại lý",noun,work
+garden,,,home
+fix,"sửa chữa; gắn",verb,
+cross,"băng qua; dấu chéo",verb,
+version,phiên bản,noun,technology
+pound,"bảng Anh; pound (đơn vị cân)",noun,
+sea,,,travel
+welcome,"chào mừng; được hoan nghênh",adjective,
+smile,,,feelings
+agent,"đại lý; nhân viên",noun,work
+judge,"đánh giá; thẩm phán",verb,
+favorite,yêu thích nhất,adjective,
+purchase,"mua; sự mua",noun,daily
+shoot,"bắn; quay phim",verb,
+survey,cuộc khảo sát,noun,academic
+majority,,,academic
+stick,"dán; que gậy",verb,
+wind,,,environment
+none,"không ai, không cái nào",pronoun,
+blood,,,health
+appropriate,"phù hợp, thích hợp",adjective,
+block,"khối; tòa nhà; chặn",noun,
+warm,"ấm, ấm áp",adjective,
+count,đếm,verb,
+scene,"cảnh; hiện trường",noun,
+correct,"đúng; sửa",adjective,
+medical,,,health
+admit,"thừa nhận; cho vào",verb,
+beat,"đánh bại; nhịp",verb,
+handle,"xử lý; tay cầm",verb,
+glass,"cốc thủy tinh; kính",noun,
+trial,"sự thử nghiệm; phiên tòa",noun,
+complex,phức tạp,adjective,
+text,"văn bản; tin nhắn",noun,technology
+context,,,study
+ride,"đi (xe đạp, ngựa...)",verb,travel
+heavy,nặng,adjective,
+remove,"loại bỏ, gỡ bỏ",verb,
+conduct,"tiến hành; hạnh kiểm",verb,
+equipment,thiết bị,noun,
+extra,"thêm; phụ",adjective,
+executive,"giám đốc điều hành; điều hành",noun,work
+expensive,,,daily
+sample,"mẫu; lấy mẫu",noun,
+deliver,"giao (hàng); phát biểu",verb,work
+video,video,noun,technology
+primary,"chính, chủ yếu; tiểu học",adjective,
+weather,thời tiết,noun,environment
+collect,"thu thập; sưu tầm",verb,
+principle,nguyên tắc,noun,academic
+trust,,,feelings
+wonderful,tuyệt vời,adjective,
+flat,"căn hộ; bằng phẳng",noun,home
+fair,"công bằng; hội chợ",adjective,
+farm,,,environment
+collection,"bộ sưu tập; sự thu thập",noun,
+hang,treo,verb,
+negative,"tiêu cực; âm tính",adjective,
+band,"ban nhạc; dải",noun,
+relative,"họ hàng; tương đối",noun,
+tour,,,travel
+ship,"con tàu; vận chuyển",noun,travel
+attitude,,,feelings
+cheap,,,daily
+double,"gấp đôi; đôi",adjective,
+leg,,,health
+sentence,,,study
+print,in,verb,
+nobody,không ai,pronoun,
+lay,"đặt, để; đẻ (trứng)",verb,
+speed,tốc độ,noun,
+politics,,,academic
+display,"hiển thị; trưng bày",verb,technology
+transfer,"chuyển; sự chuyển",verb,
+slightly,"hơi, một chút",adverb,
+overall,"tổng thể, nói chung",adjective,
+user,,,technology
+dinner,,,food
+regular,"thường xuyên, đều đặn",adjective,
+physical,"thuộc thể chất; vật lý",adjective,health
+percentage,,,academic
+crime,"tội phạm, tội ác",noun,
+decade,thập kỷ,noun,
+launch,"khởi động, ra mắt",verb,technology
+warn,cảnh báo,verb,
+consumer,,,work
+favor,"sự giúp đỡ; ưu ái",noun,
+partner,"đối tác; bạn đời",noun,work
+institution,"tổ chức, cơ quan",noun,academic
+spot,"chỗ, điểm; đốm",noun,
+excite,"làm hào hứng, kích thích",verb,feelings

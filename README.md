@@ -23,6 +23,13 @@ Sổ tay từ vựng Anh–Việt: lưu từ, nghĩa, loại từ, câu ví dụ
 - Đăng nhập tạo session: trình duyệt giữ token ngẫu nhiên trong cookie `HttpOnly`, `SameSite=Lax` (`Secure` khi `APP_ENV=production`); DB chỉ lưu SHA-256 của token, hết hạn sau 30 ngày. Đăng xuất xoá session trên server.
 - API: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/me/progress`, `GET /api/admin/users` (admin). Mọi route `/api/...` trả `401` nếu chưa đăng nhập.
 
+## Thêm nhiều từ: Import / Export CSV (admin)
+
+- Trang Admin có **Import CSV**: chọn file → web kiểm tra và hiện bản xem trước (bao nhiêu từ mới, bao nhiêu từ đã có, dòng nào lỗi) → bấm **Import** mới lưu. File còn dòng lỗi thì không lưu được. Tuỳ chọn ghi đè từ đã có.
+- **Export CSV** tải toàn bộ kho từ cùng định dạng, mở được bằng Excel (UTF-8), sửa xong import lại.
+- Định dạng: `word,meaning_vi,part_of_speech,example,usage_note,topic` (chỉ `word` và `meaning_vi` bắt buộc); file mẫu ở `/static/words-template.csv`. API: `POST /api/admin/import` (`dry_run` = chỉ kiểm tra), `GET /api/admin/words.csv`.
+- **1000 từ có sẵn**: `data/ngsl_1000.csv`, dựng từ NGSL + Wiktionary tiếng Việt + Tatoeba bằng `scripts/build_wordlist.py`, nghĩa đã được soát lại; `scripts/ai_enrich.py` dùng Gemini để điền ô trống hoặc gợi ý từ mới theo chủ đề. Nguồn, giấy phép và cách làm: [data/README.md](data/README.md).
+
 ## Chạy local (Docker)
 
 Cần Docker Desktop. Một lệnh dựng cả app và PostgreSQL:
