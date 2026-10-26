@@ -40,3 +40,26 @@ class Review(BaseModel):
     word_id: int
     reviewed_at: datetime
     result: ReviewResult
+
+
+# A light email check; the real proof would be a confirmation email.
+EMAIL_PATTERN = r"^[^@\s]+@[^@\s]+\.[^@\s]+$"
+
+
+class RegisterIn(BaseModel):
+    email: str = Field(max_length=254, pattern=EMAIL_PATTERN)
+    display_name: str = Field(min_length=1, max_length=60)
+    password: str = Field(min_length=8, max_length=128)
+
+
+class LoginIn(BaseModel):
+    email: str = Field(max_length=254)
+    password: str = Field(max_length=128)
+
+
+class User(BaseModel):
+    # Never includes password_hash.
+    id: int
+    email: str
+    display_name: str
+    created_at: datetime
