@@ -11,6 +11,7 @@
   --primary-text: #ffffff;
   --success: #16a34a;
   --danger: #dc2626;
+  --warning: #d97706;
   --radius: 14px;
   --shadow: 0 1px 2px rgba(16, 24, 40, 0.04), 0 4px 16px rgba(16, 24, 40, 0.05);
   --shadow-hover: 0 2px 4px rgba(16, 24, 40, 0.06), 0 10px 28px rgba(16, 24, 40, 0.09);
@@ -198,17 +199,44 @@ textarea { resize: vertical; }
 /* ---------- Review page ---------- */
 .deck-size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
 .deck-size select { width: auto; padding: 6px 10px; }
+.tabs.mode { margin: 14px 0 4px; }
+.tabs button {
+  flex: 1; padding: 9px; border: 0; border-radius: 8px; background: transparent; cursor: pointer;
+  color: var(--muted); font: inherit; font-weight: 600; font-size: 0.92rem;
+}
+.tabs button.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
 .progress { height: 8px; border-radius: 999px; background: var(--surface-2); overflow: hidden; margin: 14px 0 6px; }
 .progress-bar { height: 100%; width: 0; background: linear-gradient(90deg, #6366f1, #8b5cf6); transition: width 0.3s; }
 .progress-text { font-size: 0.85rem; margin: 0 0 14px; }
-.flash { text-align: center; padding: 28px 24px 32px; display: grid; gap: 16px; min-height: 340px; align-content: center; }
+.flash { text-align: center; padding: 24px 24px 28px; display: grid; gap: 14px; }
 .flash-top { display: flex; justify-content: space-between; align-items: center; min-height: 34px; }
-.flash-word { font-size: 2.6rem; font-weight: 800; letter-spacing: -0.03em; margin: 8px 0; word-break: break-word; }
-.answer { border-top: 1px dashed var(--border); padding-top: 16px; animation: fade 0.2s ease-out; }
-.flash-meaning { font-size: 1.45rem; font-weight: 600; margin: 0 0 10px; color: var(--primary); }
-.flash .example { font-style: italic; color: var(--muted); margin: 0; }
-.flash .note { margin: 8px 0 0; font-size: 0.9rem; }
-.flash .example:empty, .flash .note:empty { display: none; }
+.prompt-label { margin: 0; font-size: 0.9rem; }
+.flash-word { font-size: 2.4rem; font-weight: 800; letter-spacing: -0.03em; margin: 0; word-break: break-word; line-height: 1.2; }
+.hint { margin: 0; font: 600 1.1rem/1.4 ui-monospace, monospace; color: var(--primary); letter-spacing: 0.05em; }
+
+.answer-form { display: flex; gap: 8px; max-width: 460px; width: 100%; margin: 6px auto 0; }
+.answer-form input { font-size: 1.1rem; padding: 12px 14px; text-align: center; }
+.answer-form input.ok { border-color: var(--success); background: color-mix(in srgb, var(--success) 8%, var(--surface)); }
+.answer-form input.warn { border-color: var(--warning); background: color-mix(in srgb, var(--warning) 8%, var(--surface)); }
+.answer-form input.bad { border-color: var(--danger); background: color-mix(in srgb, var(--danger) 8%, var(--surface)); }
+.answer-form input:disabled { color: var(--text); opacity: 1; }
+.answer-form .btn { white-space: nowrap; }
+.small-actions { gap: 4px; }
+.small-actions .btn { color: var(--muted); }
+
+.feedback {
+  border-radius: 12px; padding: 16px; display: grid; gap: 8px; animation: fade 0.2s ease-out;
+  --tone: var(--danger); background: color-mix(in srgb, var(--tone) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--tone) 30%, transparent);
+}
+.feedback.ok { --tone: var(--success); }
+.feedback.warn { --tone: var(--warning); }
+.feedback p { margin: 0; }
+.verdict { font-weight: 700; font-size: 1.1rem; color: var(--tone); }
+.expected { font-size: 1.05rem; }
+.feedback .example { font-style: italic; color: var(--muted); }
+.feedback .note { font-size: 0.9rem; }
+.feedback .example:empty, .feedback .note:empty { display: none; }
 @keyframes fade { from { opacity: 0; transform: translateY(4px); } }
 
 .done { text-align: center; padding: 32px 24px; display: grid; gap: 8px; justify-items: center; }
@@ -221,6 +249,9 @@ textarea { resize: vertical; }
   width: 96px; height: 96px; border-radius: 50%; background: var(--surface);
   display: grid; place-items: center; font-size: 1.6rem; font-weight: 800;
 }
+.missed { width: 100%; text-align: left; margin: 8px 0; padding: 12px 16px; border-radius: 12px; background: var(--surface-2); }
+.missed-title { margin: 0 0 6px; font-weight: 700; }
+.missed ul { margin: 0; padding-left: 18px; display: grid; gap: 2px; }
 
 /* ---------- Account ---------- */
 .user { display: flex; align-items: center; gap: 8px; }
@@ -255,6 +286,7 @@ textarea { resize: vertical; }
   .stats { grid-template-columns: repeat(2, 1fr); }
   .grid-2 { grid-template-columns: 1fr; }
   .flash-word { font-size: 2rem; }
+  .answer-form { flex-direction: column; }
   .topbar nav a { padding: 6px 10px; }
   .btn.lg { min-width: 0; flex: 1; }
   .user-name { display: none; }
