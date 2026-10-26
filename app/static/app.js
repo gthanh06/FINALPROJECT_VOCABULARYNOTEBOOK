@@ -755,6 +755,7 @@ async function adminPage(params) {
   for (const t of root.querySelectorAll("[data-admin-tab]")) t.classList.toggle("active", t.dataset.adminTab === tab);
   $(root, "data-admin-words").hidden = tab !== "words";
   $(root, "data-admin-learners").hidden = tab !== "learners";
+  setupImport(root, () => adminPage(params));
 
   let words, users;
   try {
@@ -815,6 +816,76 @@ async function adminPage(params) {
   topicSelect.addEventListener("change", () => { state.topic = topicSelect.value; state.shown = 50; render(); });
   more.addEventListener("click", () => { state.shown += 50; render(); });
   render();
+}
+
+// CSV import: the file is checked first (dry run, nothing saved), the admin reads the
+// summary and the first rows, then confirms. A file with errors cannot be saved.
+function setupImport(root, onImported) {
+  const panel = $(root, "data-import");
+  const file = $(root, "data-import-file");
+  const update = $(root, "data-import-update");
+  const result = $(root, "data-import-result");
+  const save = $(root, "data-import-save");
+  let text = "";
+
+  $(root, "data-import-open").addEventListener("click", () => { panel.hidden = false; file.focus(); });
+  $(root, "data-import-close").addEventListener("click", () => { panel.hidden = true; });
+
+  async function preview() {
+    if (!text) return;
+    result.hidden = true;
+    let r;
+    try {
+      r = await api("/admin/import", {
+        method: "POST",
+        body: JSON.stringify({ csv: text, update_existing: update.checked, dry_run: true }),
+      });
+    } catch (err) {
+      return toast(err.message);
+    }
+    const existingWord = update.checked ? "will be updated" : "already in the bank, will be skipped";
+    $(root, "data-import-summary").replaceChildren(
+      el("strong", { textContent: `${r.total} valid rows` }),
+      ` · ${r.new} new · ${r.existing} ${existingWord}`,
+      r.errors.length ? el("span", { className: "bad", textContent: ` · ${r.errors.length} with errors` }) : "",
+    );
+    $(root, "data-import-errors").replaceChildren(...r.errors.slice(0, 20).map((e) =>
+      el("li", {}, el("strong", { textContent: `Line ${e.line}: ` }), e.message)));
+    $(root, "data-import-sample").replaceChildren(...r.sample.map((w) => {
+      const topic = topicById(w.topic_id);
+      return el("tr", {},
+        el("td", {}, el("strong", { textContent: w.word }), " ", posBadge(w.part_of_speech)),
+        el("td", { textContent: w.meaning_vi }),
+        el("td", { className: "nowrap", textContent: topic ? `${topic.icon} ${topic.name}` : "—" }),
+        el("td", { className: w.exists ? "muted" : "", textContent: w.exists ? (update.checked ? "Update" : "Skip") : "New" }));
+    }));
+    const count = r.new + (update.checked ? r.existing : 0);
+    save.disabled = r.errors.length > 0 || count === 0;
+    save.textContent = r.errors.length ? "Fix the errors in the file first"
+      : count ? `Import ${count} word${count === 1 ? "" : "s"}` : "Nothing new to import";
+    result.hidden = false;
+  }
+
+  file.addEventListener("change", async () => {
+    text = file.files[0] ? await file.files[0].text() : "";
+    preview();
+  });
+  update.addEventListener("change", preview);
+  save.addEventListener("click", async () => {
+    save.disabled = true;
+    try {
+      const r = await api("/admin/import", {
+        method: "POST",
+        body: JSON.stringify({ csv: text, update_existing: update.checked, dry_run: false }),
+      });
+      toast(`Imported: ${r.new} new` + (update.checked ? `, ${r.existing} updated` : ""));
+      topicsCache = null; // word counts per topic changed
+      onImported();
+    } catch (err) {
+      toast(err.message);
+      save.disabled = false;
+    }
+  });
 }
 
 function adminRow(w, onDeleted) {

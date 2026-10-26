@@ -193,9 +193,41 @@
           <p class="muted">Manage the word bank every learner studies, and follow their progress.</p>
         </div>
         <div class="hero-actions">
+          <a class="btn" href="/api/admin/words.csv" download>Export CSV</a>
+          <button class="btn" type="button" data-import-open>Import CSV</button>
           <a class="btn primary" href="#/admin/new">+ Add word</a>
         </div>
       </div>
+
+      <div class="card import-card" data-import hidden>
+        <div class="row">
+          <h2>Import words from a CSV file</h2>
+          <button class="btn small ghost" type="button" data-import-close>Close</button>
+        </div>
+        <p class="muted small">
+          UTF-8 CSV whose first line is <code>word,meaning_vi,part_of_speech,example,usage_note,topic</code>.
+          Only <code>word</code> and <code>meaning_vi</code> are required; <code>topic</code> is a topic name or slug.
+          <a href="/static/words-template.csv" download>Download a template</a>.
+        </p>
+        <div class="import-controls">
+          <input type="file" accept=".csv,text/csv" data-import-file aria-label="CSV file">
+          <label class="check"><input type="checkbox" data-import-update> Overwrite words that are already in the bank</label>
+        </div>
+        <div data-import-result hidden>
+          <p class="import-summary" data-import-summary></p>
+          <ul class="import-errors" data-import-errors></ul>
+          <div class="table-card">
+            <table class="table">
+              <thead><tr><th>Word</th><th>Meaning</th><th>Topic</th><th>Status</th></tr></thead>
+              <tbody data-import-sample></tbody>
+            </table>
+          </div>
+          <div class="row end">
+            <button class="btn primary" type="button" data-import-save></button>
+          </div>
+        </div>
+      </div>
+
       <div class="stats" data-admin-stats></div>
       <div class="tabs admin-tabs" role="tablist">
         <a href="#/admin" data-admin-tab="words">Words</a>

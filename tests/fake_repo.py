@@ -73,6 +73,19 @@ class FakeWordRepository:
             for t in self.store.topics
         ]
 
+    def existing_words(self, words):
+        bank = {w["word"].lower() for w in self.store.words.values()}
+        return {w.lower() for w in words} & bank
+
+    def import_words(self, rows, update_existing):
+        by_word = {w["word"].lower(): w for w in self.store.words.values()}
+        for row in rows:
+            old = by_word.get(row["word"].lower())
+            if old is None:
+                self.store.insert_word(row)
+            elif update_existing:
+                old.update({k: v for k, v in row.items() if k != "word"})
+
     def delete_word(self, word_id):
         if self.get_word(word_id) is None:
             return False

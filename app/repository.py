@@ -79,6 +79,32 @@ class WordRepository:
             " GROUP BY t.id ORDER BY t.position"
         ).fetchall()
 
+    def existing_words(self, words: list[str]) -> set[str]:
+        # Which of these words (lower-cased) are already in the bank.
+        rows = self.conn.execute(
+            "SELECT lower(word) AS w FROM words WHERE lower(word) = ANY(%s)",
+            ([w.lower() for w in words],),
+        ).fetchall()
+        return {r["w"] for r in rows}
+
+    def import_words(self, rows: list[dict], update_existing: bool) -> None:
+        # One request = one transaction (app/auth.py get_conn): all rows or none.
+        on_conflict = (
+            "DO UPDATE SET meaning_vi = EXCLUDED.meaning_vi,"
+            " part_of_speech = EXCLUDED.part_of_speech, example = EXCLUDED.example,"
+            " usage_note = EXCLUDED.usage_note, topic_id = EXCLUDED.topic_id"
+            if update_existing
+            else "DO NOTHING"
+        )
+        with self.conn.cursor() as cur:
+            cur.executemany(
+                "INSERT INTO words"
+                " (word, meaning_vi, part_of_speech, example, usage_note, topic_id)"
+                " VALUES (%(word)s, %(meaning_vi)s, %(part_of_speech)s, %(example)s,"
+                f" %(usage_note)s, %(topic_id)s) ON CONFLICT ((lower(word))) {on_conflict}",
+                rows,
+            )
+
     def delete_word(self, word_id: int) -> bool:
         cur = self.conn.execute("DELETE FROM words WHERE id = %s", (word_id,))
         return cur.rowcount == 1
