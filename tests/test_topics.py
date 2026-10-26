@@ -2,7 +2,7 @@
 DOG = {"word": "dog", "meaning_vi": "con chó", "topic_id": 1}
 
 
-def test_topics_list_counts_my_words(client):
+def test_topics_list_counts_words(client):
     client.post("/api/words", json=DOG)
     client.post("/api/words", json={"word": "cat", "meaning_vi": "con mèo", "topic_id": 1})
     client.post("/api/words", json={"word": "sofa", "meaning_vi": "ghế sofa", "topic_id": 2})
@@ -39,11 +39,7 @@ def test_topics_need_login(anon):
     assert anon.get("/api/topics").status_code == 401
 
 
-def test_counts_are_per_user(anon):
-    from tests.conftest import register
-
-    register(anon, email="an@example.com")
-    anon.post("/api/words", json=DOG)
-    anon.post("/api/auth/logout")
-    register(anon, email="binh@example.com", name="Bình")
-    assert all(t["word_count"] == 0 for t in anon.get("/api/topics").json())
+def test_learners_see_topic_counts(client, learner):
+    client.post("/api/words", json=DOG)
+    counts = {t["slug"]: t["word_count"] for t in learner.get("/api/topics").json()}
+    assert counts == {"animals": 1, "home": 0}

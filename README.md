@@ -10,12 +10,18 @@ Sổ tay từ vựng Anh–Việt: lưu từ, nghĩa, loại từ, câu ví dụ
 - CI/CD: GitHub Actions
 - AI: Gemini API (dự phòng Groq)
 
-## Tài khoản & đăng nhập
+## Tài khoản, vai trò & đăng nhập
 
-- Đăng ký bằng email + mật khẩu (tối thiểu 8 ký tự). Mỗi tài khoản có **sổ từ riêng**; tài khoản mới được chép sẵn bộ từ mẫu (các từ có `user_id` NULL, nạp từ `migrations/003_seed_words.sql`).
+- Hai vai trò (`users.role`):
+  - **learner** (mặc định khi đăng ký): xem từ theo chủ đề, ôn tập, xem tiến độ của chính mình ở trang `#/progress`; lịch sử ôn tập là của riêng mỗi người.
+  - **admin**: thêm / sửa / xoá từ trong **kho từ chung** mà mọi learner cùng học, xem tiến độ learner ở trang `#/admin`. API thêm/sửa/xoá từ trả `403` nếu không phải admin.
+- **Không ai tự đăng ký được admin**: đăng ký luôn tạo learner. Trang đăng nhập có ô nhỏ **Admin** mở form đăng nhập riêng (`#/admin-login`); server từ chối (`403`, không tạo session) mọi tài khoản không phải admin đăng nhập ở đó.
+- **Tạo tài khoản admin**: đặt `ADMIN_EMAIL` và `ADMIN_PASSWORD` (≥ 8 ký tự). Mỗi lần container khởi động, `python -m app.migrate` tạo tài khoản đó với vai trò admin, hoặc nâng tài khoản đã có email đó lên admin và đặt lại mật khẩu theo `ADMIN_PASSWORD`.
+  - Render: Dashboard → service → **Environment** → thêm 2 biến, rồi deploy lại.
+  - Local: tạo file `.env` (đã có trong `.gitignore`) chứa 2 dòng `ADMIN_EMAIL=...` và `ADMIN_PASSWORD=...`, rồi `docker compose up --build`.
 - Mật khẩu băm bằng `scrypt` (salt ngẫu nhiên, `app/security.py`); DB không lưu mật khẩu gốc.
 - Đăng nhập tạo session: trình duyệt giữ token ngẫu nhiên trong cookie `HttpOnly`, `SameSite=Lax` (`Secure` khi `APP_ENV=production`); DB chỉ lưu SHA-256 của token, hết hạn sau 30 ngày. Đăng xuất xoá session trên server.
-- API: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`. Mọi route `/api/words...` trả `401` nếu chưa đăng nhập.
+- API: `POST /api/auth/register`, `POST /api/auth/login`, `POST /api/auth/logout`, `GET /api/auth/me`, `GET /api/me/progress`, `GET /api/admin/users` (admin). Mọi route `/api/...` trả `401` nếu chưa đăng nhập.
 
 ## Chạy local (Docker)
 
@@ -65,6 +71,8 @@ Biến môi trường:
 | `DATABASE_URL` | có | Chuỗi kết nối PostgreSQL |
 | `APP_ENV` | không | `development` / `production`, hiện ở `/api/info`; `production` bật cookie `Secure` |
 | `PORT` | không | Render tự đặt; mặc định 8000 |
+| `ADMIN_EMAIL` | không | Email tài khoản admin, tạo / nâng quyền khi khởi động |
+| `ADMIN_PASSWORD` | không | Mật khẩu admin (≥ 8 ký tự); là secret, không commit |
 
 ## Quy tắc làm việc
 

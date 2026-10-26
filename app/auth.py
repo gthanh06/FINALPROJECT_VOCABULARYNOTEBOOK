@@ -1,7 +1,7 @@
 # app/auth.py — register, log in, log out, and the "who is calling" dependency.
 #
-# POST /api/auth/register   create an account (starts with the starter words), logs in
-# POST /api/auth/login      email + password -> session cookie
+# POST /api/auth/register   create a learner account, logs in
+# POST /api/auth/login      email + password -> session cookie (admin: true = admins only)
 # POST /api/auth/logout     deletes the session
 # GET  /api/auth/me         the logged-in user, or 401
 #
@@ -53,11 +53,21 @@ def current_user(request: Request, users: Users) -> dict:
     token = request.cookies.get(SESSION_COOKIE)
     user = users.get_session_user(token_hash(token)) if token else None
     if user is None:
-        raise HTTPException(status_code=401, detail="Vui lòng đăng nhập")
+        raise HTTPException(status_code=401, detail="Please log in")
     return user
 
 
 CurrentUser = Annotated[dict, Depends(current_user)]
+
+
+def require_admin(user: CurrentUser) -> dict:
+    # Logged in but not an admin: 403 (forbidden), not 401 (who are you?).
+    if user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="Only admins can do this")
+    return user
+
+
+AdminUser = Annotated[dict, Depends(require_admin)]
 
 
 def start_session(response: Response, users: Users, user_id: int) -> None:
@@ -80,8 +90,7 @@ def register(body: RegisterIn, response: Response, users: Users):
             body.email.strip(), body.display_name.strip(), hash_password(body.password)
         )
     except DuplicateEmail:
-        raise HTTPException(status_code=409, detail="Email này đã được đăng ký") from None
-    users.copy_starter_words(user["id"])
+        raise HTTPException(status_code=409, detail="This email is already registered") from None
     start_session(response, users, user["id"])
     return user
 
@@ -92,7 +101,10 @@ def login(body: LoginIn, response: Response, users: Users):
     ok = verify_password(body.password, user["password_hash"] if user else DUMMY_HASH)
     if user is None or not ok:
         # Same message either way, so the form does not reveal which emails exist.
-        raise HTTPException(status_code=401, detail="Email hoặc mật khẩu không đúng")
+        raise HTTPException(status_code=401, detail="Incorrect email or password")
+    if body.admin and user["role"] != "admin":
+        # Checked here on the server, before any session exists, not just hidden in the page.
+        raise HTTPException(status_code=403, detail="This account is not an admin account")
     start_session(response, users, user["id"])
     return user
 

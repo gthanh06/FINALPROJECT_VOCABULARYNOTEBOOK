@@ -1,19 +1,22 @@
 # app/routes.py — CRUD API for words and their review logs.
-# Every route needs a logged-in user and only sees that user's notebook.
+# Every route needs a logged-in user. Everyone reads and practices the same words;
+# adding, editing and deleting words is for admins only.
 from typing import Annotated
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 
-from app.auth import CurrentUser, get_conn
+from app.auth import AdminUser, CurrentUser, get_conn, get_users
 from app.grading import check
-from app.repository import DuplicateWord, UnknownTopic, WordRepository
+from app.repository import DuplicateWord, UnknownTopic, UserRepository, WordRepository
 from app.schemas import (
     AnswerIn,
     AnswerResult,
+    Progress,
     Review,
     ReviewCreate,
     Topic,
+    UserSummary,
     Word,
     WordCreate,
     WordUpdate,
@@ -32,11 +35,15 @@ Repo = Annotated[WordRepository, Depends(get_repo)]
 
 
 def not_found() -> HTTPException:
-    return HTTPException(status_code=404, detail="Không tìm thấy từ này")
+    return HTTPException(status_code=404, detail="Word not found")
+
+
+def duplicate_word() -> HTTPException:
+    return HTTPException(status_code=409, detail="This word is already in your notebook")
 
 
 def unknown_topic() -> HTTPException:
-    return HTTPException(status_code=422, detail="Chủ đề không tồn tại")
+    return HTTPException(status_code=422, detail="This topic does not exist")
 
 
 @router.get("/topics", response_model=list[Topic])
@@ -50,11 +57,11 @@ def list_words(repo: Repo, q: str | None = None):
 
 
 @router.post("/words", response_model=Word, status_code=201)
-def create_word(body: WordCreate, repo: Repo):
+def create_word(body: WordCreate, repo: Repo, _: AdminUser):
     try:
         return repo.create_word(body.model_dump())
     except DuplicateWord:
-        raise HTTPException(status_code=409, detail="Từ này đã có trong sổ") from None
+        raise duplicate_word() from None
     except UnknownTopic:
         raise unknown_topic() from None
 
@@ -68,11 +75,11 @@ def get_word(word_id: int, repo: Repo):
 
 
 @router.patch("/words/{word_id}", response_model=Word)
-def update_word(word_id: int, body: WordUpdate, repo: Repo):
+def update_word(word_id: int, body: WordUpdate, repo: Repo, _: AdminUser):
     try:
         word = repo.update_word(word_id, body.model_dump(exclude_unset=True))
     except DuplicateWord:
-        raise HTTPException(status_code=409, detail="Từ này đã có trong sổ") from None
+        raise duplicate_word() from None
     except UnknownTopic:
         raise unknown_topic() from None
     if word is None:
@@ -81,7 +88,7 @@ def update_word(word_id: int, body: WordUpdate, repo: Repo):
 
 
 @router.delete("/words/{word_id}", status_code=204)
-def delete_word(word_id: int, repo: Repo):
+def delete_word(word_id: int, repo: Repo, _: AdminUser):
     if not repo.delete_word(word_id):
         raise not_found()
     return Response(status_code=204)
@@ -111,3 +118,14 @@ def list_reviews(word_id: int, repo: Repo):
     if reviews is None:
         raise not_found()
     return reviews
+
+
+@router.get("/me/progress", response_model=Progress)
+def my_progress(repo: Repo):
+    # Only ever the logged-in user's own progress.
+    return repo.progress()
+
+
+@router.get("/admin/users", response_model=list[UserSummary])
+def list_users(users: Annotated[UserRepository, Depends(get_users)], _: AdminUser):
+    return users.list_users()

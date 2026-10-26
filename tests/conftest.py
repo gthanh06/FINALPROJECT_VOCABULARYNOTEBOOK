@@ -3,7 +3,7 @@
 # app/db.py reads DATABASE_URL at import time and crashes if it is missing.
 # The CI runner has no database, so we give it a harmless dummy value and
 # replace the repositories with in-memory fakes (tests/fake_repo.py).
-# The real login code (app/auth.py) still runs: only the storage is fake.
+# The real login and role checks (app/auth.py) still run: only the storage is fake.
 import os
 
 os.environ.setdefault("DATABASE_URL", "postgresql://unused@localhost/none")
@@ -22,7 +22,7 @@ PASSWORD = "correct-horse-1"
 
 @pytest.fixture
 def repo():
-    # Named "repo" for the word tests: it holds every user's words and reviews.
+    # Named "repo" for the word tests: it holds the words and everyone's reviews.
     return FakeStore()
 
 
@@ -32,8 +32,8 @@ def users(repo):
 
 
 @pytest.fixture
-def anon(repo, users):
-    """A browser that has not logged in yet."""
+def new_browser(repo, users):
+    """Returns a function that opens a new browser (its own cookies) on the fake app."""
 
     def fake_get_repo(user: CurrentUser):
         return FakeWordRepository(repo, user["id"])
@@ -41,7 +41,7 @@ def anon(repo, users):
     app.dependency_overrides[get_conn] = lambda: None
     app.dependency_overrides[get_users] = lambda: users
     app.dependency_overrides[get_repo] = fake_get_repo
-    yield TestClient(app)
+    yield lambda: TestClient(app)
     app.dependency_overrides.clear()
 
 
@@ -54,7 +54,23 @@ def register(client, email="an@example.com", name="An"):
 
 
 @pytest.fixture
-def client(anon):
-    """A browser logged in as a freshly registered user."""
-    register(anon)
-    return anon
+def anon(new_browser):
+    """A browser that has not logged in yet."""
+    return new_browser()
+
+
+@pytest.fixture
+def client(new_browser, users):
+    """A browser logged in as an admin (can add, edit and delete words)."""
+    browser = new_browser()
+    user = register(browser, email="admin@example.com", name="Admin").json()
+    users.users[user["id"]]["role"] = "admin"
+    return browser
+
+
+@pytest.fixture
+def learner(new_browser):
+    """A browser logged in as a learner (can only read and practice)."""
+    browser = new_browser()
+    register(browser, email="learner@example.com", name="Lan")
+    return browser
