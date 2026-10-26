@@ -155,6 +155,10 @@
           </select>
         </label>
       </div>
+      <div class="tabs mode" role="radiogroup" aria-label="Chiều ôn tập">
+        <button type="button" data-mode="en-vi">🇬🇧 Anh → Việt 🇻🇳</button>
+        <button type="button" data-mode="vi-en">🇻🇳 Việt → Anh 🇬🇧</button>
+      </div>
       <div class="progress" aria-hidden="true"><div class="progress-bar" data-bar></div></div>
       <p class="muted progress-text" data-progress></p>
 
@@ -165,24 +169,39 @@
             <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7M18.5 5.5a9 9 0 0 1 0 13"/></svg>
           </button>
         </div>
-        <p class="flash-word" data-word></p>
-        <div class="answer" data-answer hidden>
-          <p class="flash-meaning" data-meaning></p>
+        <p class="muted prompt-label" data-prompt-label></p>
+        <p class="flash-word" data-prompt></p>
+        <p class="hint" data-hint hidden></p>
+
+        <form class="answer-form" data-answer-form autocomplete="off">
+          <input name="answer" data-input autocomplete="off" autocapitalize="off" spellcheck="false" maxlength="200">
+          <button class="btn primary" type="submit" data-check>Kiểm tra</button>
+        </form>
+        <div class="row center small-actions" data-before>
+          <button type="button" class="btn small ghost" data-hint-btn>Gợi ý</button>
+          <button type="button" class="btn small ghost" data-skip>Không biết</button>
+        </div>
+
+        <div class="feedback" data-feedback hidden>
+          <p class="verdict" data-verdict></p>
+          <p class="expected"><span class="muted">Đáp án:</span> <strong data-expected></strong></p>
           <p class="example" data-example></p>
           <p class="note" data-note></p>
-        </div>
-        <div class="row center" data-actions-show>
-          <button class="btn primary lg" data-show>Xem nghĩa <kbd>Space</kbd></button>
-        </div>
-        <div class="row center" data-actions-grade hidden>
-          <button class="btn danger lg" data-grade="forgot">Quên <kbd>1</kbd></button>
-          <button class="btn success lg" data-grade="remembered">Nhớ <kbd>2</kbd></button>
+          <div class="row center">
+            <button type="button" class="btn small ghost" data-override hidden>Tôi trả lời đúng</button>
+            <button type="button" class="btn primary" data-next>Tiếp tục <kbd>Enter</kbd></button>
+          </div>
         </div>
       </div>
+
       <div class="card done" data-done hidden>
         <div class="ring" data-ring><span data-percent></span></div>
         <p class="big">Hoàn thành lượt ôn!</p>
         <p class="muted" data-summary></p>
+        <div class="missed" data-missed-box hidden>
+          <p class="missed-title">Từ cần ôn lại</p>
+          <ul data-missed></ul>
+        </div>
         <div class="row center">
           <button class="btn primary" data-again>Ôn lượt mới</button>
           <a class="btn" href="#/">Về danh sách</a>

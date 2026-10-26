@@ -3,7 +3,7 @@
 //   #/            list (search, filter by part of speech, sort, edit, delete)
 //   #/new         add a word
 //   #/edit/{id}   edit a word
-//   #/review      flashcard review, logs remembered / forgot
+//   #/review      typed review, English -> Vietnamese or back; logs remembered / forgot
 // Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
 // The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
 "use strict";
@@ -374,14 +374,51 @@ function shuffle(arr) {
   return arr;
 }
 
-let deckSize = "20"; // remembered between review rounds
+// Deck size and direction are remembered in this browser (best effort).
+function pref(key, fallback) {
+  try { return localStorage.getItem(key) || fallback; } catch { return fallback; }
+}
+function savePref(key, value) {
+  try { localStorage.setItem(key, value); } catch { /* private mode: keep it for this visit */ }
+}
+
+const MODES = {
+  "en-vi": { label: "Nghĩa tiếng Việt của từ này là gì?", placeholder: "Gõ nghĩa tiếng Việt..." },
+  "vi-en": { label: "Từ tiếng Anh nào có nghĩa là:", placeholder: "Type the English word..." },
+};
+const VERDICTS = {
+  correct: ["ok", "✓ Chính xác!"],
+  accent: ["ok", "✓ Đúng rồi! Nhớ gõ dấu cho chuẩn nhé."],
+  close: ["ok", "≈ Gần đúng, chỉ sai chính tả một chút."],
+  // vi-en: a typo in the English word is shown but does not count.
+  closeMiss: ["warn", "≈ Gần đúng, nhưng sai chính tả nên chưa tính điểm."],
+  wrong: ["bad", "✗ Chưa đúng."],
+};
 
 async function reviewPage() {
   const root = mount("tpl-review");
   const card = $(root, "data-card");
   const size = $(root, "data-size");
-  size.value = deckSize;
-  size.addEventListener("change", () => { deckSize = size.value; reviewPage(); });
+  const form = $(root, "data-answer-form");
+  const input = $(root, "data-input");
+  const feedback = $(root, "data-feedback");
+  const before = $(root, "data-before");
+  const hint = $(root, "data-hint");
+  const override = $(root, "data-override");
+  const bar = $(root, "data-bar");
+  let mode = pref("review-mode", "en-vi");
+
+  size.value = pref("review-size", "20");
+  size.addEventListener("change", () => { savePref("review-size", size.value); reviewPage(); });
+  for (const btn of root.querySelectorAll("[data-mode]")) {
+    btn.classList.toggle("active", btn.dataset.mode === mode);
+    btn.setAttribute("aria-checked", btn.dataset.mode === mode);
+    btn.addEventListener("click", () => {
+      if (btn.dataset.mode === mode) return;
+      savePref("review-mode", btn.dataset.mode);
+      reviewPage(); // a new round in the other direction
+    });
+  }
 
   let words;
   try {
@@ -393,41 +430,96 @@ async function reviewPage() {
     card.innerHTML = '<p class="empty">Chưa có từ nào để ôn. <a href="#/new">Thêm từ</a></p>';
     return;
   }
-  if (Number(deckSize) > 0) words = words.slice(0, Number(deckSize));
+  if (Number(size.value) > 0) words = words.slice(0, Number(size.value));
 
   let i = 0;
+  let result = null; // "remembered" / "forgot" once the current card is answered
   let busy = false;
   const score = { remembered: 0, forgot: 0 };
-  const answer = $(root, "data-answer");
-  const showBox = $(root, "data-actions-show");
-  const gradeBox = $(root, "data-actions-grade");
-  const bar = $(root, "data-bar");
+  const missed = [];
 
   function render() {
     const w = words[i];
+    result = null;
     bar.style.width = `${(i / words.length) * 100}%`;
     $(root, "data-progress").textContent =
-      `Thẻ ${i + 1} / ${words.length} · Nhớ ${score.remembered} · Quên ${score.forgot}`;
+      `Thẻ ${i + 1} / ${words.length} · Đúng ${score.remembered} · Sai ${score.forgot}`;
     const pos = $(root, "data-pos");
     pos.className = `badge ${w.part_of_speech || ""}`;
     pos.textContent = w.part_of_speech || "";
-    $(root, "data-word").textContent = w.word;
-    $(root, "data-meaning").textContent = w.meaning_vi;
+    $(root, "data-prompt-label").textContent = MODES[mode].label;
+    $(root, "data-prompt").textContent = mode === "en-vi" ? w.word : w.meaning_vi;
+    // In vi-en the sound would give the answer away, so it waits until after checking.
+    $(root, "data-speak").hidden = mode === "vi-en";
+    input.value = "";
+    input.disabled = false;
+    input.placeholder = MODES[mode].placeholder;
+    input.lang = mode === "en-vi" ? "vi" : "en";
+    input.className = "";
+    $(root, "data-check").disabled = false;
+    hint.hidden = true;
+    before.hidden = false;
+    feedback.hidden = true;
+    input.focus();
+  }
+
+  function showHint() {
+    const w = words[i];
+    // vi-en: first letter + blanks; en-vi: first word of the meaning.
+    hint.textContent = mode === "vi-en"
+      ? w.word.replace(/[a-z]/gi, (c, k) => (k === 0 ? c : "_")).split("").join(" ")
+      : `Bắt đầu bằng: “${w.meaning_vi.split(/[,;]/)[0].trim().split(" ")[0]} …”`;
+    hint.hidden = false;
+    input.focus();
+  }
+
+  function showFeedback(verdict, expected) {
+    const w = words[i];
+    const [tone, text] = VERDICTS[verdict];
+    const v = $(root, "data-verdict");
+    v.className = `verdict ${tone}`;
+    v.textContent = text;
+    $(root, "data-expected").textContent = expected;
     $(root, "data-example").textContent = w.example || "";
     $(root, "data-note").textContent = w.usage_note || "";
-    answer.hidden = true;
-    showBox.hidden = false;
-    gradeBox.hidden = true;
+    feedback.className = `feedback ${tone}`;
+    input.className = tone;
+    input.disabled = true;
+    $(root, "data-check").disabled = true;
+    before.hidden = true;
+    feedback.hidden = false;
+    override.hidden = result !== "forgot" || !input.value.trim();
+    $(root, "data-speak").hidden = false;
+    $(root, "data-next").focus();
   }
 
-  function reveal() {
-    answer.hidden = false;
-    showBox.hidden = true;
-    gradeBox.hidden = false;
+  async function checkAnswer() {
+    if (busy || result) return;
+    const answer = input.value.trim();
+    if (!answer) return skip();
+    busy = true;
+    try {
+      const r = await api(`/words/${words[i].id}/check`, {
+        method: "POST",
+        body: JSON.stringify({ direction: mode, answer }),
+      });
+      result = r.correct ? "remembered" : "forgot";
+      showFeedback(r.verdict === "close" && !r.correct ? "closeMiss" : r.verdict, r.expected);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      busy = false;
+    }
   }
 
-  async function grade(result) {
-    if (busy || gradeBox.hidden) return;
+  function skip() {
+    if (result) return;
+    result = "forgot";
+    showFeedback("wrong", mode === "en-vi" ? words[i].meaning_vi : words[i].word);
+  }
+
+  async function next() {
+    if (busy || !result) return;
     busy = true;
     try {
       await api(`/words/${words[i].id}/reviews`, {
@@ -441,6 +533,7 @@ async function reviewPage() {
       busy = false;
     }
     score[result]++;
+    if (result === "forgot") missed.push(words[i]);
     i++;
     if (i < words.length) return render();
     finish();
@@ -453,24 +546,38 @@ async function reviewPage() {
     const percent = Math.round((score.remembered / words.length) * 100);
     $(root, "data-ring").style.setProperty("--p", percent);
     $(root, "data-percent").textContent = `${percent}%`;
-    $(root, "data-done").hidden = false;
     $(root, "data-summary").textContent =
-      `Nhớ ${score.remembered} · Quên ${score.forgot} trên tổng ${words.length} thẻ`;
+      `Đúng ${score.remembered} · Sai ${score.forgot} trên tổng ${words.length} thẻ`;
+    if (missed.length) {
+      $(root, "data-missed").replaceChildren(...missed.map((w) => el("li", {},
+        el("strong", { textContent: w.word }), ` — ${w.meaning_vi}`)));
+      $(root, "data-missed-box").hidden = false;
+    }
+    $(root, "data-done").hidden = false;
   }
 
-  $(root, "data-show").addEventListener("click", reveal);
+  form.addEventListener("submit", (e) => { e.preventDefault(); checkAnswer(); });
+  $(root, "data-hint-btn").addEventListener("click", showHint);
+  $(root, "data-skip").addEventListener("click", skip);
+  $(root, "data-next").addEventListener("click", next);
   $(root, "data-speak").addEventListener("click", () => speak(words[i].word));
-  for (const btn of root.querySelectorAll("[data-grade]")) {
-    btn.addEventListener("click", () => grade(btn.dataset.grade));
-  }
+  override.addEventListener("click", () => {
+    result = "remembered";
+    override.hidden = true;
+    const v = $(root, "data-verdict");
+    v.className = "verdict ok";
+    v.textContent = "✓ Đã tính là đúng.";
+    feedback.className = "feedback ok";
+    input.className = "ok";
+    $(root, "data-next").focus();
+  });
   $(root, "data-again").addEventListener("click", () => reviewPage());
 
-  // Keyboard: Space / Enter shows the meaning, 1 = forgot, 2 = remembered.
+  // Enter on the "Tiếp tục" button already clicks it; this covers focus elsewhere.
   document.addEventListener("keydown", (e) => {
-    if (card.hidden || e.target.matches("input, select, textarea")) return;
-    if ((e.key === " " || e.key === "Enter") && !showBox.hidden) { e.preventDefault(); reveal(); }
-    else if (e.key === "1") grade("forgot");
-    else if (e.key === "2") grade("remembered");
+    if (e.key !== "Enter" || card.hidden || !result || e.target.closest("button")) return;
+    e.preventDefault();
+    next();
   }, { signal: pageSignal() });
 
   render();
