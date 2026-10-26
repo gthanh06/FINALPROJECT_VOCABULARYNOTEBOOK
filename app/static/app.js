@@ -1,12 +1,15 @@
 // app.js — hash router + pages for the Vocabulary Notebook UI.
+//   #/login       log in            #/register    create an account
 //   #/            list (search, filter by part of speech, sort, edit, delete)
 //   #/new         add a word
 //   #/edit/{id}   edit a word
 //   #/review      flashcard review, logs remembered / forgot
-// Everything goes through the JSON API under /api (app/routes.py).
+// Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
+// The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
 "use strict";
 
 const view = document.getElementById("view");
+let me = undefined; // undefined = not checked yet, null = logged out
 const PAGE_SIZE = 30;
 const POS_LABELS = {
   noun: "Danh từ", verb: "Động từ", adjective: "Tính từ", adverb: "Trạng từ",
@@ -20,6 +23,11 @@ async function api(path, options = {}) {
   });
   if (res.status === 204) return null;
   const body = await res.json().catch(() => ({}));
+  if (res.status === 401 && !path.startsWith("/auth/")) {
+    // Session expired or logged out in another tab: back to the login page.
+    setUser(null);
+    location.hash = "#/login";
+  }
   if (!res.ok) {
     // FastAPI sends {detail: "..."} or, for 422, {detail: [{msg: ...}]}.
     const detail = Array.isArray(body.detail)
@@ -85,6 +93,102 @@ function iconButton(icon, label, extraClass = "") {
 
 function posBadge(pos) {
   return el("span", { className: `badge ${pos || ""}`, textContent: pos || "" });
+}
+
+// ---------- Tài khoản ----------
+function setUser(user) {
+  me = user;
+  document.querySelector("[data-nav-links]").hidden = !user;
+  document.querySelector("[data-user]").hidden = !user;
+  if (user) {
+    document.querySelector("[data-user-name]").textContent = user.display_name;
+    document.querySelector("[data-avatar]").textContent = user.display_name.trim()[0].toUpperCase();
+  }
+}
+
+document.querySelector("[data-logout]").addEventListener("click", async () => {
+  try {
+    await api("/auth/logout", { method: "POST" });
+  } catch {
+    // Already logged out on the server: nothing else to do.
+  }
+  setUser(null);
+  toast("Đã đăng xuất");
+  location.hash = "#/login";
+});
+
+const AUTH_TEXT = {
+  login: {
+    title: "Chào mừng trở lại",
+    subtitle: "Đăng nhập để tiếp tục ôn từ vựng.",
+    submit: "Đăng nhập",
+    switch: ['Chưa có tài khoản? ', "#/register", "Đăng ký ngay"],
+  },
+  register: {
+    title: "Tạo tài khoản",
+    subtitle: "Sổ của bạn có sẵn hơn 200 từ thông dụng để bắt đầu.",
+    submit: "Tạo tài khoản",
+    switch: ["Đã có tài khoản? ", "#/login", "Đăng nhập"],
+  },
+};
+
+function authPage(mode) {
+  const root = mount("tpl-auth");
+  const text = AUTH_TEXT[mode];
+  const form = $(root, "data-auth-form");
+  const error = $(root, "data-error");
+  const submit = $(root, "data-submit");
+  $(root, "data-auth-title").textContent = text.title;
+  $(root, "data-auth-subtitle").textContent = text.subtitle;
+  submit.textContent = text.submit;
+  $(root, "data-switch").append(text.switch[0], el("a", { href: text.switch[1], textContent: text.switch[2] }));
+  for (const tab of root.querySelectorAll("[data-tab]")) {
+    tab.classList.toggle("active", tab.dataset.tab === mode);
+  }
+  const isRegister = mode === "register";
+  $(root, "data-name-field").hidden = !isRegister;
+  form.display_name.required = isRegister;
+  form.password.autocomplete = isRegister ? "new-password" : "current-password";
+  form.password.placeholder = isRegister ? "Ít nhất 8 ký tự" : "Mật khẩu của bạn";
+  (isRegister ? form.display_name : form.email).focus();
+
+  const toggle = $(root, "data-toggle-password");
+  toggle.addEventListener("click", () => {
+    const show = form.password.type === "password";
+    form.password.type = show ? "text" : "password";
+    toggle.textContent = show ? "Ẩn" : "Hiện";
+  });
+
+  function check() {
+    if (isRegister && !form.display_name.value.trim()) return "Vui lòng nhập tên hiển thị.";
+    if (!/^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(form.email.value.trim())) return "Email không hợp lệ.";
+    if (isRegister && form.password.value.length < 8) return "Mật khẩu cần ít nhất 8 ký tự.";
+    if (!form.password.value) return "Vui lòng nhập mật khẩu.";
+    return "";
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const problem = check();
+    error.textContent = problem;
+    error.hidden = !problem;
+    if (problem) return;
+
+    const body = { email: form.email.value.trim(), password: form.password.value };
+    if (isRegister) body.display_name = form.display_name.value.trim();
+    submit.disabled = true;
+    try {
+      const user = await api(`/auth/${mode}`, { method: "POST", body: JSON.stringify(body) });
+      setUser(user);
+      toast(isRegister ? `Chào ${user.display_name}! Tài khoản đã được tạo.` : `Chào mừng trở lại, ${user.display_name}!`);
+      location.hash = "#/";
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
 }
 
 // ---------- Danh sách ----------
@@ -373,9 +477,24 @@ async function reviewPage() {
 }
 
 // ---------- Router ----------
-function route() {
+const PUBLIC_PAGES = ["/login", "/register"];
+
+async function route() {
   const [path, qs] = location.hash.replace(/^#/, "").split("?");
   const params = new URLSearchParams(qs);
+
+  if (me === undefined) {
+    try {
+      setUser(await api("/auth/me"));
+    } catch {
+      setUser(null);
+    }
+  }
+  // Logged out: only the login / register pages. Logged in: never those two.
+  if (!me && !PUBLIC_PAGES.includes(path)) { location.hash = "#/login"; return; }
+  if (me && PUBLIC_PAGES.includes(path)) { location.hash = "#/"; return; }
+  if (PUBLIC_PAGES.includes(path)) { authPage(path.slice(1)); window.scrollTo(0, 0); return; }
+
   let page = "list";
   const edit = path.match(/^\/edit\/(\d+)$/);
   if (path === "/new") { page = "new"; formPage(null); }

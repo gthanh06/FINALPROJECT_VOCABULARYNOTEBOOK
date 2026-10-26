@@ -1,7 +1,10 @@
 # app/repository.py — every SQL query of the app lives here.
 #
-# The routes only talk to WordRepository, so the unit tests can swap it for an
-# in-memory fake and run in CI without any database.
+# The routes only talk to WordRepository / UserRepository, so the unit tests can
+# swap them for in-memory fakes and run in CI without any database.
+# A WordRepository is bound to one user: every query is limited to that user's words.
+from datetime import UTC, datetime, timedelta
+
 import psycopg
 
 UPDATABLE = ("word", "meaning_vi", "part_of_speech", "example", "usage_note")
@@ -11,29 +14,39 @@ class DuplicateWord(Exception):
     """The word is already in the notebook (unique index on lower(word))."""
 
 
+class DuplicateEmail(Exception):
+    """An account with this email already exists (unique index on lower(email))."""
+
+
 class WordRepository:
-    def __init__(self, conn: psycopg.Connection):
+    def __init__(self, conn: psycopg.Connection, user_id: int):
         self.conn = conn
+        self.user_id = user_id
 
     def list_words(self, q: str | None = None) -> list[dict]:
         if q:
             return self.conn.execute(
-                "SELECT * FROM words WHERE word ILIKE %s OR meaning_vi ILIKE %s"
+                "SELECT * FROM words WHERE user_id = %s AND (word ILIKE %s OR meaning_vi ILIKE %s)"
                 " ORDER BY created_at DESC, id DESC",
-                (f"%{q}%", f"%{q}%"),
+                (self.user_id, f"%{q}%", f"%{q}%"),
             ).fetchall()
-        return self.conn.execute("SELECT * FROM words ORDER BY created_at DESC, id DESC").fetchall()
+        return self.conn.execute(
+            "SELECT * FROM words WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            (self.user_id,),
+        ).fetchall()
 
     def get_word(self, word_id: int) -> dict | None:
-        return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
+        return self.conn.execute(
+            "SELECT * FROM words WHERE id = %s AND user_id = %s", (word_id, self.user_id)
+        ).fetchone()
 
     def create_word(self, data: dict) -> dict:
         try:
             return self.conn.execute(
-                "INSERT INTO words (word, meaning_vi, part_of_speech, example, usage_note)"
-                " VALUES (%(word)s, %(meaning_vi)s, %(part_of_speech)s, %(example)s,"
+                "INSERT INTO words (user_id, word, meaning_vi, part_of_speech, example, usage_note)"
+                " VALUES (%(user_id)s, %(word)s, %(meaning_vi)s, %(part_of_speech)s, %(example)s,"
                 " %(usage_note)s) RETURNING *",
-                data,
+                {**data, "user_id": self.user_id},
             ).fetchone()
         except psycopg.errors.UniqueViolation as err:
             raise DuplicateWord from err
@@ -46,14 +59,16 @@ class WordRepository:
         sets = ", ".join(f"{k} = %({k})s" for k in fields)
         try:
             return self.conn.execute(
-                f"UPDATE words SET {sets} WHERE id = %(id)s RETURNING *",
-                {**fields, "id": word_id},
+                f"UPDATE words SET {sets} WHERE id = %(id)s AND user_id = %(user_id)s RETURNING *",
+                {**fields, "id": word_id, "user_id": self.user_id},
             ).fetchone()
         except psycopg.errors.UniqueViolation as err:
             raise DuplicateWord from err
 
     def delete_word(self, word_id: int) -> bool:
-        cur = self.conn.execute("DELETE FROM words WHERE id = %s", (word_id,))
+        cur = self.conn.execute(
+            "DELETE FROM words WHERE id = %s AND user_id = %s", (word_id, self.user_id)
+        )
         return cur.rowcount == 1
 
     def add_review(self, word_id: int, result: str) -> dict | None:
@@ -71,3 +86,51 @@ class WordRepository:
             "SELECT * FROM review_logs WHERE word_id = %s ORDER BY reviewed_at DESC, id DESC",
             (word_id,),
         ).fetchall()
+
+
+class UserRepository:
+    def __init__(self, conn: psycopg.Connection):
+        self.conn = conn
+
+    def create_user(self, email: str, display_name: str, password_hash: str) -> dict:
+        try:
+            return self.conn.execute(
+                "INSERT INTO users (email, display_name, password_hash) VALUES (%s, %s, %s)"
+                " RETURNING *",
+                (email, display_name, password_hash),
+            ).fetchone()
+        except psycopg.errors.UniqueViolation as err:
+            raise DuplicateEmail from err
+
+    def get_user_by_email(self, email: str) -> dict | None:
+        return self.conn.execute(
+            "SELECT * FROM users WHERE lower(email) = lower(%s)", (email,)
+        ).fetchone()
+
+    def copy_starter_words(self, user_id: int) -> int:
+        # The seeded words (user_id NULL) become the new user's first notebook.
+        cur = self.conn.execute(
+            "INSERT INTO words (user_id, word, meaning_vi, part_of_speech, example, usage_note)"
+            " SELECT %s, word, meaning_vi, part_of_speech, example, usage_note"
+            " FROM words WHERE user_id IS NULL ORDER BY id",
+            (user_id,),
+        )
+        return cur.rowcount
+
+    def create_session(self, token_hash: str, user_id: int, days: int) -> None:
+        # Expired sessions are cleaned up here instead of by a separate job.
+        self.conn.execute("DELETE FROM sessions WHERE expires_at < now()")
+        self.conn.execute(
+            "INSERT INTO sessions (token_hash, user_id, expires_at) VALUES (%s, %s, %s)",
+            (token_hash, user_id, datetime.now(UTC) + timedelta(days=days)),
+        )
+
+    def get_session_user(self, token_hash: str) -> dict | None:
+        return self.conn.execute(
+            "SELECT u.* FROM sessions s JOIN users u ON u.id = s.user_id"
+            " WHERE s.token_hash = %s AND s.expires_at > now()",
+            (token_hash,),
+        ).fetchone()
+
+    def delete_session(self, token_hash: str) -> None:
+        self.conn.execute("DELETE FROM sessions WHERE token_hash = %s", (token_hash,))
