@@ -164,6 +164,7 @@
         </div>
         <div class="hero-actions">
           <a class="btn" href="#/">Lấy từ kho chung</a>
+          <a class="btn" href="#/notebook/suggest">✨ Gợi ý từ</a>
           <a class="btn" href="#/notebook/sentence">✍️ Đặt câu</a>
 
           <a class="btn" href="#/quiz">Quiz sổ tay</a>
@@ -256,6 +257,37 @@
           <button class="btn primary" type="submit" data-submit>Lưu vào sổ</button>
         </div>
       </form>
+    </section>
+  </template>
+
+  <!-- Gợi ý từ: the AI suggests new words for a topic and a level, the learner ticks some -->
+  <template id="tpl-suggest">
+    <section lang="vi">
+      <a class="back" href="#/notebook">← Sổ của tôi</a>
+      <h1>Gợi ý từ</h1>
+      <p class="muted">Chọn chủ đề và trình độ, AI gợi ý từ mới (bỏ qua những từ đã có trong sổ). Đánh dấu từ muốn học rồi thêm vào sổ.</p>
+      <div data-suggest-body>
+        <form class="card form suggest-form" data-form novalidate>
+          <div class="grid-2">
+            <label>Chủ đề
+              <select name="topic_id" data-topic-select></select>
+            </label>
+            <label>Trình độ
+              <select name="level"></select>
+            </label>
+          </div>
+          <p class="muted small hint-line" data-ai-hint></p>
+          <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
+          <div class="row end">
+            <button class="btn primary" type="submit" data-submit>✨ Gợi ý</button>
+          </div>
+        </form>
+        <ul class="words suggest-list" data-suggestions aria-live="polite"></ul>
+        <div class="row center suggest-actions" data-suggest-actions hidden>
+          <button class="btn" type="button" data-more>Gợi ý thêm</button>
+          <button class="btn primary" type="button" data-add disabled>Chọn từ để thêm vào sổ</button>
+        </div>
+      </div>
     </section>
   </template>
 

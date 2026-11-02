@@ -12,7 +12,7 @@ def test_home_serves_the_ui():
     assert r.headers["content-type"].startswith("text/html")
     for page in (
         'id="tpl-list"', 'id="tpl-form"', 'id="tpl-review"',
-        'id="tpl-notebook"', 'id="tpl-notebook-form"', 'id="tpl-sentence"',
+        'id="tpl-notebook"', 'id="tpl-notebook-form"', 'id="tpl-sentence"', 'id="tpl-suggest"',
         'id="tpl-quiz"', 'id="tpl-srs"',
     ):
         assert page in r.text

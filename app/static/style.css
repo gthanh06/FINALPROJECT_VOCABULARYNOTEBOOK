@@ -246,6 +246,19 @@ textarea { resize: vertical; }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 .ai-filled { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 35%, transparent); }
 
+/* ---------- Gợi ý từ ---------- */
+.suggest-list { margin-top: 16px; }
+.suggest-item label { display: flex; gap: 12px; align-items: flex-start; cursor: pointer; font-weight: normal; }
+.suggest-item input[type=checkbox] { width: 20px; height: 20px; margin-top: 4px; flex: none; accent-color: var(--primary); }
+.suggest-text { display: grid; gap: 6px; min-width: 0; flex: 1; }
+.suggest-item:has(input:checked) { box-shadow: 0 0 0 2px var(--primary); }
+.suggest-item.added { opacity: 0.6; }
+.suggest-item.added .w::after { content: " ✓ đã thêm"; font-size: 0.8rem; font-weight: 500; color: var(--success); }
+.suggest-actions {
+  margin-top: 16px; position: sticky; bottom: 12px; padding: 10px; border-radius: 14px;
+  background: var(--surface); border: 1px solid var(--border); box-shadow: var(--shadow);
+}
+
 /* ---------- Đặt câu ---------- */
 .sentence-pick { align-items: flex-end; flex-wrap: nowrap; }
 .sentence-pick .grow { flex: 1; min-width: 0; }

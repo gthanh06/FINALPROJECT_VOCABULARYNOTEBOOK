@@ -314,7 +314,7 @@ class FakeAIRepository:
         }
 
     def topics(self):
-        return [{"id": t["id"], "slug": t["slug"]} for t in self.store.topics]
+        return [{"id": t["id"], "slug": t["slug"], "name": t["name"]} for t in self.store.topics]
 
     def usage_since(self, user_id, since):
         return sum(

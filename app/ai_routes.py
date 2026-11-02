@@ -5,12 +5,14 @@
 # POST /api/ai/lookup   {"word": "resilient"} -> meaning, IPA, examples... to review before saving
 # POST /api/ai/check-sentence  {"word_id": 3, "sentence": "..."} -> verdict, errors explained
 #                       in Vietnamese, corrected sentence (word_id is one of my notebook words)
+# POST /api/ai/suggest-words  {"topic_id": 3, "level": "B1", "exclude": [...]} -> about 10 new
+#                       words for that topic and level, minus the words already in my notebook
 #
 # Every route needs a logged-in user. Calls that reach the AI count towards the
 # user's limits (app/ratelimit.py); cached answers do not.
 import hashlib
 import re
-from typing import Annotated, TypeVar
+from typing import Annotated, Literal, TypeVar
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
@@ -18,7 +20,7 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app import ratelimit
 from app.ai.errors import AIError, AINotConfigured
-from app.ai.schemas import SentenceCheck, WordLookup
+from app.ai.schemas import SentenceCheck, SuggestedWord, WordLookup, WordSuggestions
 from app.ai.service import AIService, get_ai
 from app.auth import CurrentUser, get_conn
 from app.notebook import Notebook
@@ -191,3 +193,68 @@ def check_sentence(
         raise ai_http_error(err) from None
     repo.cache_put("sentence", key, version, ai.model, result.model_dump())
     return {"result": result, "cached": False}
+
+
+# ---------- Gợi ý từ theo chủ đề + trình độ ----------
+SUGGEST_COUNT = 10
+
+
+class SuggestIn(BaseModel):
+    topic_id: int
+    level: Literal["A1", "A2", "B1", "B2", "C1"]
+    # Words already shown on the page ("Gợi ý thêm" must not repeat them).
+    exclude: list[Annotated[str, Field(max_length=60)]] = Field(
+        default_factory=list, max_length=100
+    )
+
+
+class SuggestOut(BaseModel):
+    words: list[SuggestedWord]
+    topic_id: int
+    cached: bool
+
+
+def new_words(words: list[SuggestedWord], avoid: set[str]) -> list[SuggestedWord]:
+    """Drops words to avoid, duplicates and anything that is not a plain English word."""
+    out, seen = [], set(avoid)
+    for w in words:
+        key = normalize_word(w.word)
+        if key in seen or not WORD_PATTERN.match(key):
+            continue
+        seen.add(key)
+        out.append(w.model_copy(update={"word": key}))
+    return out
+
+
+@router.post("/suggest-words", response_model=SuggestOut)
+def suggest_words(body: SuggestIn, ai: AI, repo: AIRepo, notebook: Notebook, user: CurrentUser):
+    topic = next((t for t in repo.topics() if t["id"] == body.topic_id), None)
+    if topic is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy chủ đề này")
+    mine = {normalize_word(w["word"]) for w in notebook.list_words()}
+    shown = {normalize_word(w) for w in body.exclude}
+    key = f"{topic['slug']}|{body.level}"
+    version = ai.prompt_version("suggest_words")
+
+    # The first list for a topic and level is shared by everyone; "more" is always fresh.
+    if not shown:
+        cached = cached_answer(repo, "suggest", key, version, WordSuggestions)
+        if cached is not None:
+            words = new_words(cached.words, mine)
+            if len(words) >= 3:
+                return {"words": words, "topic_id": topic["id"], "cached": True}
+
+    avoid = sorted(mine | shown)
+    try:
+        with ratelimit.counted(repo, user["id"], "suggest_words"):
+            result = ai.run(
+                "suggest_words", WordSuggestions,
+                topic=topic["name"], level=body.level, count=SUGGEST_COUNT,
+                avoid=", ".join(avoid[-150:]) or "(none)",
+            )
+    except AIError as err:
+        raise ai_http_error(err) from None
+    if not shown:
+        repo.cache_put("suggest", key, version, ai.model, result.model_dump())
+    words = new_words(result.words, mine | shown)
+    return {"words": words, "topic_id": topic["id"], "cached": False}
