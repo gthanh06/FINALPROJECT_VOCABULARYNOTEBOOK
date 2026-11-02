@@ -274,6 +274,43 @@ class NotebookRepository:
         return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
 
 
+class AIRepository:
+    """AI answer cache (shared by everyone) and per-user AI usage."""
+
+    def __init__(self, conn: psycopg.Connection):
+        self.conn = conn
+
+    def cache_get(self, kind: str, key: str, prompt_version: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT data FROM ai_cache WHERE kind = %s AND key = %s AND prompt_version = %s",
+            (kind, key, prompt_version),
+        ).fetchone()
+        return row["data"] if row else None
+
+    def cache_put(self, kind: str, key: str, prompt_version: str, model: str, data: dict) -> None:
+        self.conn.execute(
+            "INSERT INTO ai_cache (kind, key, prompt_version, model, data)"
+            " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (kind, key) DO UPDATE SET"
+            " prompt_version = EXCLUDED.prompt_version, model = EXCLUDED.model,"
+            " data = EXCLUDED.data, created_at = now()",
+            (kind, key, prompt_version, model, Jsonb(data)),
+        )
+
+    def usage_since(self, user_id: int, since: datetime) -> int:
+        return self.conn.execute(
+            "SELECT count(*) AS n FROM ai_usage WHERE user_id = %s AND created_at >= %s",
+            (user_id, since),
+        ).fetchone()["n"]
+
+    def topics(self) -> list[dict]:
+        return self.conn.execute("SELECT id, slug FROM topics ORDER BY position").fetchall()
+
+    def add_usage(self, user_id: int, feature: str) -> None:
+        self.conn.execute(
+            "INSERT INTO ai_usage (user_id, feature) VALUES (%s, %s)", (user_id, feature)
+        )
+
+
 class UserRepository:
     def __init__(self, conn: psycopg.Connection):
         self.conn = conn

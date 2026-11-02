@@ -21,10 +21,16 @@ const POS_LABELS = {
 };
 
 async function api(path, options = {}) {
-  const res = await fetch("/api" + path, {
-    headers: { "Content-Type": "application/json" },
-    ...options,
-  });
+  let res;
+  try {
+    res = await fetch("/api" + path, {
+      headers: { "Content-Type": "application/json" },
+      ...options,
+    });
+  } catch (err) {
+    if (err.name === "AbortError") throw err;
+    throw new Error("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+  }
   if (res.status === 204) return null;
   const body = await res.json().catch(() => ({}));
   if (res.status === 401 && !path.startsWith("/auth/")) {
@@ -563,11 +569,13 @@ async function notebookFormPage(id) {
   const error = $(root, "data-error");
   const submit = $(root, "data-submit");
   $(root, "data-title").textContent = id ? "Sửa từ" : "Thêm từ vào sổ";
+  let aiStatus = null;
   try {
-    await loadTopics();
+    [, aiStatus] = await Promise.all([loadTopics(), api("/ai/status").catch(() => null)]);
   } catch (err) {
     return showError(view, err);
   }
+  const ai = setupAiFill(root, form, aiStatus, submit);
   topicOptions(form.topic_id);
   form.topic_id.prepend(el("option", { value: "", textContent: "— Chưa phân loại —" }));
   form.topic_id.value = "";
@@ -593,6 +601,7 @@ async function notebookFormPage(id) {
       error.hidden = false;
       return;
     }
+    if (!id && ai.filled()) data.source = "ai";
     submit.disabled = true;
     try {
       await api(id ? `/notebook/words/${id}` : "/notebook/words", {
@@ -608,6 +617,107 @@ async function notebookFormPage(id) {
       submit.disabled = false;
     }
   });
+}
+
+// ---------- AI điền thông tin từ ----------
+// The browser only calls our own /api/ai/lookup; the Gemini key stays on the server.
+const AI_TIMEOUT_MS = 45000; // the server retries a busy AI a few times before answering
+
+function setupAiFill(root, form, status, submit) {
+  const button = $(root, "data-ai-fill");
+  const panel = $(root, "data-ai-panel");
+  const hint = $(root, "data-ai-hint");
+  let filled = false;
+  let controller = null;
+
+  if (!status?.enabled) {
+    button.disabled = true;
+    button.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
+    hint.textContent = "Tính năng AI chưa được bật trên máy chủ. Bạn vẫn có thể tự nhập từ.";
+  } else {
+    hint.append(` Hôm nay còn ${Math.max(0, status.limit_per_day - status.used_today)}/${status.limit_per_day} lượt (tra lại từ đã có thì không tính).`);
+  }
+
+  function show(kind, ...children) {
+    panel.className = `ai-panel ${kind}`;
+    panel.replaceChildren(...children);
+    panel.hidden = false;
+  }
+
+  function hasContent() {
+    return ["meaning_vi", "definition_en", "example_en_0", "ipa"].some((k) => form[k].value.trim());
+  }
+
+  async function run(word) {
+    word = (word ?? form.word.value).trim();
+    if (!word) {
+      form.word.focus();
+      return show("warn", el("span", { className: "grow", textContent: "Hãy nhập từ tiếng Anh trước." }));
+    }
+    if (hasContent() && !confirm("Ghi đè các ô đang có bằng gợi ý của AI?")) return;
+
+    controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    cancel.addEventListener("click", () => controller.abort());
+    show("", el("span", { className: "spinner", ariaHidden: "true" }),
+      el("span", { className: "grow", textContent: `AI đang tra "${word}"… thường mất vài giây.` }), cancel);
+    button.disabled = submit.disabled = true;
+    root.querySelector("[data-form]").setAttribute("aria-busy", "true");
+    try {
+      const body = await api("/ai/lookup", {
+        method: "POST", body: JSON.stringify({ word }), signal: controller.signal,
+      });
+      const r = body.result;
+      if (!r.is_english_word) {
+        const parts = [el("span", { className: "grow", textContent: `Không tìm thấy từ tiếng Anh "${word}".` })];
+        if (r.suggestion) {
+          const retry = el("button", { type: "button", className: "btn small", textContent: `Có phải "${r.suggestion}"?` });
+          retry.addEventListener("click", () => { form.word.value = r.suggestion; run(r.suggestion); });
+          parts.push(retry);
+        }
+        return show("warn", ...parts);
+      }
+      fillNotebookForm(form, {
+        word: r.word || word,
+        meaning_vi: r.meaning_vi,
+        ipa: r.ipa,
+        part_of_speech: r.part_of_speech,
+        definition_en: r.definition_en,
+        usage_note: r.usage_note,
+        examples: r.examples,
+        synonyms: r.synonyms,
+        antonyms: r.antonyms,
+        collocations: r.collocations,
+        ...(body.topic_id ? { topic_id: body.topic_id } : {}),
+      });
+      filled = true;
+      for (const field of form.querySelectorAll("input, textarea, select")) {
+        if (field.name !== "word" && field.value) field.classList.add("ai-filled");
+      }
+      show("", el("span", { className: "grow" },
+        el("strong", { textContent: "✨ AI đã điền thông tin. " }),
+        "Hãy xem lại và sửa nếu cần trước khi lưu.",
+        body.cached ? el("span", { className: "muted", textContent: " (lấy từ bộ nhớ, không tốn lượt)" }) : ""));
+      form.meaning_vi.focus();
+    } catch (err) {
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
+      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      again.addEventListener("click", () => run());
+      show("error", el("span", { className: "grow", textContent: message }), again);
+    } finally {
+      clearTimeout(timer);
+      button.disabled = submit.disabled = false;
+      root.querySelector("[data-form]").removeAttribute("aria-busy");
+    }
+  }
+
+  button.addEventListener("click", () => run());
+  // Fields the user changes after the AI filled them lose the highlight.
+  form.addEventListener("input", (e) => e.target.classList.remove("ai-filled"));
+  return { filled: () => filled };
 }
 
 // The form <-> the JSON of one notebook word. Lists are typed comma-separated.

@@ -12,11 +12,15 @@ os.environ.setdefault("APP_ENV", "test")
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.ai.service import AIService, get_ai  # noqa: E402
+from app.ai_routes import get_ai_repo  # noqa: E402
 from app.auth import CurrentUser, get_conn, get_users  # noqa: E402
 from app.main import app  # noqa: E402
 from app.notebook import get_notebook  # noqa: E402
 from app.routes import get_repo  # noqa: E402
+from tests.fake_ai import FakeProvider  # noqa: E402
 from tests.fake_repo import (  # noqa: E402
+    FakeAIRepository,
     FakeNotebookRepository,
     FakeStore,
     FakeUserRepository,
@@ -33,12 +37,18 @@ def repo():
 
 
 @pytest.fixture
+def ai():
+    """A fake AI provider: tests queue its answers; it never calls Gemini."""
+    return FakeProvider()
+
+
+@pytest.fixture
 def users(repo):
     return FakeUserRepository(repo)
 
 
 @pytest.fixture
-def new_browser(repo, users):
+def new_browser(repo, users, ai):
     """Returns a function that opens a new browser (its own cookies) on the fake app."""
 
     def fake_get_repo(user: CurrentUser):
@@ -51,6 +61,9 @@ def new_browser(repo, users):
     app.dependency_overrides[get_users] = lambda: users
     app.dependency_overrides[get_repo] = fake_get_repo
     app.dependency_overrides[get_notebook] = fake_get_notebook
+    app.dependency_overrides[get_ai_repo] = lambda: FakeAIRepository(repo)
+    # No sleeping between retries in tests.
+    app.dependency_overrides[get_ai] = lambda: AIService(ai, sleep=ai.sleeps.append)
     yield lambda: TestClient(app)
     app.dependency_overrides.clear()
 

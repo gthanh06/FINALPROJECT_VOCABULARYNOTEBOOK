@@ -191,13 +191,18 @@
       <h1 data-title></h1>
       <form class="card form" data-form novalidate>
         <div class="grid-2">
-          <label><span>Từ tiếng Anh <span class="req">*</span></span>
-            <input name="word" required maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vd: resilient">
-          </label>
+          <div class="ai-word">
+            <label><span>Từ tiếng Anh <span class="req">*</span></span>
+              <input name="word" required maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vd: resilient">
+            </label>
+            <button type="button" class="btn ai-btn" data-ai-fill>✨ AI điền</button>
+          </div>
           <label>Loại từ
             <select name="part_of_speech" data-pos-select></select>
           </label>
         </div>
+        <p class="muted small hint-line" data-ai-hint>Nhập từ rồi bấm <strong>✨ AI điền</strong>: AI gợi ý nghĩa, phiên âm, ví dụ… để bạn xem lại và sửa trước khi lưu.</p>
+        <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
         <div class="grid-2">
           <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
             <input name="meaning_vi" required maxlength="300" autocomplete="off" placeholder="vd: kiên cường, mau phục hồi">
