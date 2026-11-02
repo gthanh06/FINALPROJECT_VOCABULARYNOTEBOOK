@@ -20,3 +20,8 @@ services:
         sync: false
       - key: APP_ENV
         value: production
+      # AI: the key is a secret typed in the dashboard; the model can be changed here.
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-3.5-flash-lite

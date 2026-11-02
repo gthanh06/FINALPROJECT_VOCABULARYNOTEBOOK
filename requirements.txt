@@ -1,3 +1,5 @@
 fastapi==0.142.2
 uvicorn==0.54.0
 psycopg[binary]==3.3.6
+google-genai==2.34.0   # Gemini (Google Gen AI SDK), used only by app/ai/gemini.py
+python-dotenv==1.2.4   # reads .env when running outside Docker

@@ -8,15 +8,24 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "postgresql://unused@localhost/none")
 os.environ.setdefault("APP_ENV", "test")
+# app/__init__.py loads the developer's .env; these win over it, so the tests do not
+# depend on whoever runs them (a real key, other limits). Empty key = AI off by default.
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["AI_LIMIT_PER_MINUTE"] = "5"
+os.environ["AI_LIMIT_PER_DAY"] = "50"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402
 
+from app.ai.service import AIService, get_ai  # noqa: E402
+from app.ai_routes import get_ai_repo  # noqa: E402
 from app.auth import CurrentUser, get_conn, get_users  # noqa: E402
 from app.main import app  # noqa: E402
 from app.notebook import get_notebook  # noqa: E402
 from app.routes import get_repo  # noqa: E402
+from tests.fake_ai import FakeProvider  # noqa: E402
 from tests.fake_repo import (  # noqa: E402
+    FakeAIRepository,
     FakeNotebookRepository,
     FakeStore,
     FakeUserRepository,
@@ -33,12 +42,18 @@ def repo():
 
 
 @pytest.fixture
+def ai():
+    """A fake AI provider: tests queue its answers; it never calls Gemini."""
+    return FakeProvider()
+
+
+@pytest.fixture
 def users(repo):
     return FakeUserRepository(repo)
 
 
 @pytest.fixture
-def new_browser(repo, users):
+def new_browser(repo, users, ai):
     """Returns a function that opens a new browser (its own cookies) on the fake app."""
 
     def fake_get_repo(user: CurrentUser):
@@ -51,6 +66,9 @@ def new_browser(repo, users):
     app.dependency_overrides[get_users] = lambda: users
     app.dependency_overrides[get_repo] = fake_get_repo
     app.dependency_overrides[get_notebook] = fake_get_notebook
+    app.dependency_overrides[get_ai_repo] = lambda: FakeAIRepository(repo)
+    # No sleeping between retries in tests.
+    app.dependency_overrides[get_ai] = lambda: AIService(ai, sleep=ai.sleeps.append)
     yield lambda: TestClient(app)
     app.dependency_overrides.clear()
 

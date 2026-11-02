@@ -20,6 +20,8 @@ class FakeStore:
         self.next_id = 1
         self.notebook: dict[int, dict] = {}  # user_words, every user's rows
         self.next_notebook_id = 1
+        self.ai_cache: dict[tuple[str, str], dict] = {}
+        self.ai_usage: list[dict] = []
         self.topics = [
             {"id": 1, "slug": "animals", "name": "Con vật", "icon": "🐾"},
             {"id": 2, "slug": "home", "name": "Nhà cửa & nội thất", "icon": "🛋️"},
@@ -227,6 +229,45 @@ class FakeNotebookRepository:
 
     def get_bank_word(self, word_id):
         return self.store.words.get(word_id)
+
+
+class FakeAIRepository:
+    def __init__(self, store: FakeStore):
+        self.store = store
+
+    def cache_get(self, kind, key, prompt_version):
+        row = self.store.ai_cache.get((kind, key))
+        return row["data"] if row and row["prompt_version"] == prompt_version else None
+
+    def cache_put(self, kind, key, prompt_version, model, data):
+        self.store.ai_cache[(kind, key)] = {
+            "prompt_version": prompt_version, "model": model, "data": data,
+        }
+
+    def topics(self):
+        return [{"id": t["id"], "slug": t["slug"]} for t in self.store.topics]
+
+    def usage_since(self, user_id, since):
+        return sum(
+            u["user_id"] == user_id and u["created_at"] >= since for u in self.store.ai_usage
+        )
+
+    def lock_usage(self, user_id):
+        pass
+
+    def add_usage(self, user_id, feature):
+        usage_id = len(self.store.ai_usage) + 1
+        self.store.ai_usage.append({
+            "id": usage_id, "user_id": user_id, "feature": feature,
+            "created_at": datetime.now(UTC),
+        })
+        return usage_id
+
+    def delete_usage(self, usage_id):
+        self.store.ai_usage = [u for u in self.store.ai_usage if u["id"] != usage_id]
+
+    def commit(self):
+        pass
 
 
 class FakeUserRepository:

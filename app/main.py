@@ -6,6 +6,7 @@
 # /api/info    app name, version and environment
 # /api/auth/.. register, login, logout, me (app/auth.py)
 # /api/notebook/... each user's own notebook (app/notebook.py)
+# /api/ai/...  AI features, Gemini is only called from the server (app/ai_routes.py, app/ai/)
 # /api/...     CRUD for words and review logs, per user (app/routes.py)
 import hashlib
 import os
@@ -16,6 +17,7 @@ from fastapi import FastAPI, Request
 from fastapi.responses import HTMLResponse, JSONResponse
 from fastapi.staticfiles import StaticFiles
 
+from app.ai_routes import router as ai_router
 from app.auth import router as auth_router
 from app.db import DatabaseUnavailable, connect
 from app.notebook import router as notebook_router
@@ -44,6 +46,7 @@ app = FastAPI(title="vocab-notebook")
 app.include_router(auth_router)
 app.include_router(router)
 app.include_router(notebook_router)
+app.include_router(ai_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 
