@@ -13,6 +13,7 @@ def test_home_serves_the_ui():
     for page in (
         'id="tpl-list"', 'id="tpl-form"', 'id="tpl-review"',
         'id="tpl-notebook"', 'id="tpl-notebook-form"', 'id="tpl-sentence"',
+        'id="tpl-quiz"', 'id="tpl-srs"',
     ):
         assert page in r.text
 

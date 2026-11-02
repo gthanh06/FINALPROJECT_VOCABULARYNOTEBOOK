@@ -9,6 +9,8 @@
 //   #/notebook/new  add a word to it          #/notebook/edit/{id}  edit one of my words
 //   #/notebook/sentence  write a sentence with one of my words, the AI grades it (?word={id})
 //   #/review      typed review by topic or random, English <-> Vietnamese; logs results
+//   #/quiz        server-graded quiz from the private notebook
+//   #/srs         spaced repetition for words due today
 // Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
 // The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
 "use strict";
@@ -1227,6 +1229,204 @@ async function reviewPage(topicFromUrl) {
   render();
 }
 
+// ---------- Quiz từ sổ tay ----------
+async function quizPage() {
+  const root = mount("tpl-quiz");
+  const start = $(root, "data-quiz-start");
+  const count = $(root, "data-quiz-count");
+  const area = $(root, "data-quiz-area");
+  let quiz;
+  let busy = false;
+
+  start.addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    const button = start.querySelector("button");
+    button.disabled = true;
+    area.replaceChildren();
+    try {
+      quiz = await api("/quiz", {
+        method: "POST",
+        body: JSON.stringify({ count: Number(count.value) }),
+      });
+      renderQuiz();
+    } catch (err) {
+      area.replaceChildren(el("p", { className: "error", textContent: err.message }));
+    } finally {
+      busy = false;
+      button.disabled = false;
+    }
+  });
+
+  function renderQuiz() {
+    const form = el("form", { className: "quiz-form card" });
+    form.append(el("p", {
+      className: "muted",
+      textContent: `${quiz.questions.length} câu · Đáp án sẽ được chấm sau khi nộp.`,
+    }));
+    for (const question of quiz.questions) {
+      const field = el("fieldset", { className: "quiz-question" });
+      field.append(el("legend", {
+        textContent: `${question.id}. ${question.prompt}`,
+      }));
+      if (question.choices) {
+        for (const choice of question.choices) {
+          const input = el("input", {
+            type: "radio", name: `q-${question.id}`, value: choice, required: true,
+          });
+          field.append(el("label", { className: "quiz-option" }, input, ` ${choice}`));
+        }
+      } else {
+        field.append(el("input", {
+          type: "text", name: `q-${question.id}`, required: true, maxLength: 300,
+          autocomplete: "off", placeholder: "Điền đáp án...",
+        }));
+      }
+      form.append(field);
+    }
+    form.append(el("button", { className: "btn primary", type: "submit", textContent: "Nộp bài" }));
+    form.addEventListener("submit", submitQuiz);
+    area.replaceChildren(form);
+  }
+
+  async function submitQuiz(event) {
+    event.preventDefault();
+    if (busy) return;
+    busy = true;
+    const form = event.currentTarget;
+    const button = form.querySelector("button[type=submit]");
+    button.disabled = true;
+    const answers = quiz.questions.map((question) => {
+      const selected = form.querySelector(`[name="q-${question.id}"]:checked`)
+        || form.querySelector(`[name="q-${question.id}"]`);
+      return { question_id: question.id, answer: selected.value.trim() };
+    });
+    try {
+      const result = await api(`/quiz/${quiz.quiz_id}/submit`, {
+        method: "POST",
+        body: JSON.stringify({ answers }),
+      });
+      const report = el("div", { className: "card quiz-results" });
+      report.append(
+        el("h2", { textContent: `Kết quả: ${result.score}/${result.total}` }),
+      );
+      for (const question of result.questions) {
+        report.append(el("article", {
+          className: `quiz-result ${question.correct ? "ok" : "bad"}`,
+        },
+        el("strong", { textContent: `${question.id}. ${question.prompt}` }),
+        el("p", { textContent: question.correct
+          ? `Đúng: ${question.expected}`
+          : `Bạn chọn: ${question.answer || "—"} · Đáp án: ${question.expected}` })));
+      }
+      report.append(el("button", {
+        className: "btn primary", type: "button", textContent: "Làm quiz mới",
+      }));
+      report.lastChild.addEventListener("click", () => start.requestSubmit());
+      area.replaceChildren(report);
+    } catch (err) {
+      toast(err.message);
+      button.disabled = false;
+    } finally {
+      busy = false;
+    }
+  }
+}
+
+// ---------- Ôn cách quãng ----------
+async function srsPage() {
+  const root = mount("tpl-srs");
+  const card = $(root, "data-srs-card");
+  const count = $(root, "data-srs-count");
+  let cards;
+  try {
+    ({ cards } = await api("/srs/today"));
+  } catch (err) {
+    return showError(card, err);
+  }
+  let index = 0;
+
+  function render() {
+    count.textContent = `${Math.max(0, cards.length - index)} từ cần ôn`;
+    if (index >= cards.length) {
+      card.replaceChildren(el("div", { className: "card empty" },
+        el("p", { textContent: "Bạn đã ôn hết các từ đến hạn hôm nay. Tốt lắm!" }),
+        el("a", { className: "btn", href: "#/notebook", textContent: "Về sổ của tôi" })));
+      return;
+    }
+    const word = cards[index];
+    const panel = el("article", { className: "card srs-card" },
+      el("p", { className: "muted", textContent: `Từ ${index + 1}/${cards.length}` }),
+      el("h2", { className: "flash-word", textContent: word.word }));
+    if (word.part_of_speech) {
+      panel.append(el("span", { className: "badge", textContent: word.part_of_speech }));
+    }
+    const reveal = el("button", {
+      className: "btn primary", type: "button", textContent: "Hiện nghĩa",
+    });
+    const answer = el("div", { className: "srs-answer", hidden: true },
+      el("h3", { textContent: word.meaning_vi }));
+    if (word.definition_en) {
+      answer.append(el("p", { className: "muted", textContent: word.definition_en }));
+    }
+    for (const example of word.examples || []) {
+      answer.append(el("p", { className: "example", textContent: example.en }));
+    }
+    const feedback = el("p", { className: "muted", role: "status" });
+    const ratings = el("div", { className: "srs-ratings", hidden: true });
+    const labels = ["Quên", "Rất khó", "Khó", "Tạm nhớ", "Nhớ", "Dễ"];
+    labels.forEach((label, quality) => {
+      const button = el("button", {
+        className: "btn small", type: "button", textContent: `${label} (${quality})`,
+      });
+      button.addEventListener("click", () => rate(quality, button));
+      ratings.append(button);
+    });
+    reveal.addEventListener("click", () => {
+      answer.hidden = false;
+      ratings.hidden = false;
+      reveal.hidden = true;
+    });
+    panel.append(reveal, answer, ratings, feedback);
+    card.replaceChildren(panel);
+
+    async function rate(quality, button) {
+      if (button.disabled) return;
+      ratings.querySelectorAll("button").forEach((item) => { item.disabled = true; });
+      try {
+        const scheduled = await api(`/srs/words/${word.id}/review`, {
+          method: "POST",
+          body: JSON.stringify({ quality }),
+        });
+        const dueDate = new Date(`${scheduled.next_review}T00:00:00+07:00`);
+        feedback.textContent =
+          `Đã lưu · mức ${scheduled.level}/5 · ôn lại ${dueDate.toLocaleDateString("vi-VN")}`;
+        if (quality < 3) {
+          feedback.textContent += " · Đang tạo mẹo ghi nhớ...";
+          try {
+            const tip = await api(`/srs/words/${word.id}/mnemonic`, { method: "POST" });
+            feedback.textContent += ` ${tip.mnemonic}`;
+          } catch (err) {
+            feedback.textContent = `Đã lưu lịch ôn nhưng chưa tạo được mẹo: ${err.message}`;
+          }
+        }
+        index++;
+        const next = el("button", {
+          className: "btn primary", type: "button", textContent: "Từ tiếp theo",
+        });
+        next.addEventListener("click", render);
+        panel.append(next);
+      } catch (err) {
+        feedback.textContent = err.message;
+        ratings.querySelectorAll("button").forEach((item) => { item.disabled = false; });
+      }
+    }
+  }
+
+  render();
+}
+
 // ---------- Tiến độ ----------
 async function progressPage() {
   const root = mount("tpl-progress");
@@ -1501,6 +1701,8 @@ async function route() {
   else if (path === "/notebook/sentence") { page = "notebook"; sentencePage(params); }
   else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
+  else if (path === "/quiz") { page = "quiz"; quizPage(); }
+  else if (path === "/srs") { page = "srs"; srsPage(); }
   else if (path === "/review") { page = "review"; reviewPage(params.get("topic")); }
   else listPage(params);
   for (const a of document.querySelectorAll("[data-nav]")) {

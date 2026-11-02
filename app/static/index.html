@@ -18,6 +18,8 @@
         <a href="#/" data-nav="list">Words</a>
         <a href="#/notebook" data-nav="notebook">Sổ của tôi</a>
         <a href="#/review" data-nav="review">Practice</a>
+        <a href="#/quiz" data-nav="quiz">Quiz</a>
+        <a href="#/srs" data-nav="srs">Ôn hôm nay</a>
         <a href="#/progress" data-nav="progress">Progress</a>
         <a href="#/admin" data-nav="admin" data-admin-only hidden>Admin</a>
       </nav>
@@ -163,6 +165,10 @@
         <div class="hero-actions">
           <a class="btn" href="#/">Lấy từ kho chung</a>
           <a class="btn" href="#/notebook/sentence">✍️ Đặt câu</a>
+
+          <a class="btn" href="#/quiz">Quiz sổ tay</a>
+          <a class="btn" href="#/srs">Ôn hôm nay</a>
+
           <a class="btn primary" href="#/notebook/new">+ Thêm từ</a>
         </div>
       </div>
@@ -391,6 +397,43 @@
           </table>
         </div>
       </div>
+    </section>
+  </template>
+
+  <!-- Quiz generated and graded by the server from the private notebook -->
+  <template id="tpl-quiz">
+    <section class="narrow" lang="vi">
+      <div class="hero">
+        <div>
+          <h1>Quiz sổ tay</h1>
+          <p class="muted">Trắc nghiệm, điền từ còn thiếu và chọn nghĩa đúng. Đáp án chỉ hiện sau khi nộp bài.</p>
+        </div>
+      </div>
+      <form class="card row" data-quiz-start>
+        <label class="deck-size">Số câu
+          <select data-quiz-count>
+            <option value="5">5</option>
+            <option value="10" selected>10</option>
+            <option value="20">20</option>
+            <option value="30">30</option>
+          </select>
+        </label>
+        <button class="btn primary" type="submit">Tạo quiz</button>
+      </form>
+      <div data-quiz-area></div>
+    </section>
+  </template>
+
+  <!-- Spaced repetition, with scheduling computed and saved by the server -->
+  <template id="tpl-srs">
+    <section class="narrow" lang="vi">
+      <div class="hero">
+        <div>
+          <h1>Ôn hôm nay</h1>
+          <p class="muted" data-srs-count>Đang tải từ cần ôn...</p>
+        </div>
+      </div>
+      <div data-srs-card></div>
     </section>
   </template>
 
