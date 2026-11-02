@@ -1,4 +1,4 @@
-version: 1
+version: 2
 <!--
   prompts/check_sentence.md — "Kiểm tra câu tự đặt" (app/ai_routes.py, POST /api/ai/check-sentence).
   Bump "version" after changing this file: cached answers made with the old text are redone.
@@ -23,10 +23,17 @@ Rules:
 - errors: one item per real problem (max 5), most important first. "excerpt" is the exact
   wrong part copied from the sentence. "explanation_vi" explains the problem simply in
   Vietnamese with full diacritics. For "correct" sentences, errors is [].
+- word_form: the exact form of the target word that corrected uses ("reader", "readers",
+  "persevered"). It must be the target word itself or an inflection of it, never another
+  word from the same family ("read" is not "reader", "decided" is not "decision").
 - corrected: the learner's sentence with only the necessary fixes, keeping their idea and
   as many of their words as possible. If the sentence is already correct, repeat it unchanged.
+  It MUST contain the target word (or an inflected form) used correctly with the meaning the
+  learner studied: the goal is practising that word. Never replace it with another word
+  (e.g. do not turn "reader" into "read"); if the word was misused, rewrite the sentence so
+  the target word fits. If the target word was missing, add it.
 - better_version: an optional more natural or more advanced way to say the same idea, or null
-  if the sentence is already very natural.
+  if the sentence is already very natural. It must also contain the target word.
 - feedback_vi: 1–3 short, encouraging sentences in Vietnamese summarising the result.
   Praise what is good, then say what to fix.
 

@@ -45,7 +45,9 @@ class AIService:
     def prompt_version(self, name: str) -> str:
         return prompts.load(name).version
 
-    def run(self, prompt_name: str, output: type[M], **values: object) -> M:
+    def run(self, prompt_name: str, output: type[M], accept=None, **values: object) -> M:
+        """`accept(result)` is a softer check: a failing answer is asked again once,
+        but kept if the second answer fails it too."""
         system, user = prompts.render(prompt_name, **values)
         schema = output.model_json_schema()
         for attempt in (1, 2):
@@ -53,8 +55,11 @@ class AIService:
             try:
                 result = output.model_validate_json(text)
                 if getattr(result, "is_complete", lambda: True)():
-                    return result
-                problem = "incomplete answer"
+                    if accept is None or accept(result) or attempt == 2:
+                        return result
+                    problem = "not accepted"
+                else:
+                    problem = "incomplete answer"
             except ValidationError as err:
                 problem = f"{err.error_count()} validation error(s)"
             print(f"ai {prompt_name}: attempt {attempt} rejected ({problem})")

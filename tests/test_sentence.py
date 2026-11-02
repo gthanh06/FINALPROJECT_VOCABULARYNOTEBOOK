@@ -1,4 +1,5 @@
 # tests/test_sentence.py — POST /api/ai/check-sentence: grading a sentence the learner wrote.
+from app.ai_routes import is_form_of
 from tests.conftest import register
 from tests.fake_ai import sentence_answer
 
@@ -31,6 +32,8 @@ def test_wrong_sentence_is_explained_in_vietnamese(learner, ai):
     assert "kiên cường" in prompt
     # Extra spaces are collapsed before grading.
     assert "<<<\nShe very resilient.\n>>>" in prompt
+    # The corrected sentence must keep practising the target word.
+    assert "MUST contain the target word" in ai.calls[0]["system"]
 
 
 def test_same_sentence_again_is_cached(learner, ai):
@@ -48,6 +51,34 @@ def test_wrong_verdict_without_errors_is_retried(learner, ai):
     ai.queue(sentence_answer(errors=[]), sentence_answer())
     assert check(learner, word_id, "She resilient.").status_code == 200
     assert len(ai.calls) == 2
+
+
+def test_corrected_sentence_must_keep_the_word(learner, ai):
+    word_id = add_word(learner)
+    dropped = sentence_answer(word_form="tough", corrected="She is very tough.")
+    ai.queue(dropped, sentence_answer())
+    r = check(learner, word_id, "She resilient.")
+    assert r.json()["result"]["corrected"] == "She is very resilient."
+    assert len(ai.calls) == 2
+
+
+def test_word_dropped_twice_is_kept_rather_than_failing(learner, ai):
+    # Irregular forms (went, children) cannot be checked, so a second miss is not an error.
+    word_id = add_word(learner)
+    dropped = sentence_answer(word_form="tough", corrected="She is very tough.")
+    ai.queue(dropped, dropped)
+    r = check(learner, word_id, "She resilient.")
+    assert r.status_code == 200
+    assert len(ai.calls) == 2
+
+
+def test_word_forms():
+    assert is_form_of("readers", "reader")
+    assert is_form_of("Persevered", "persevere")
+    assert is_form_of("studies", "study")
+    assert not is_form_of("read", "reader")
+    assert not is_form_of("decided", "decision")
+    assert not is_form_of("", "reader")
 
 
 def test_only_my_own_words(learner, new_browser, ai):
