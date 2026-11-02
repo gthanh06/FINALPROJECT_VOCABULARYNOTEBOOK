@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+HEAD
 import io
 import json
 import urllib.error
@@ -130,7 +130,7 @@ def test_ai_suggest_endpoint_reports_provider_errors(learner, monkeypatch):
     )
     assert result.status_code == 503
     assert result.json()["detail"] == ai.AIRateLimitError.detail
-=======
+
 # tests/test_ai.py — the AI service (validation, retries) and /api/ai, with a fake provider.
 import pytest
 
@@ -342,4 +342,3 @@ def test_get_ai_reads_the_environment(monkeypatch):
     monkeypatch.setenv("GEMINI_MODEL", "gemini-test-model")
     assert ai_service.get_ai().model == "gemini-test-model"
     ai_service.get_ai.cache_clear()
->>>>>>> 79802eb2171f17e372c9fb58d895bcee7d07ef30
