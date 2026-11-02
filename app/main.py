@@ -5,6 +5,7 @@
 # /health/db   proves the database connection
 # /api/info    app name, version and environment
 # /api/auth/.. register, login, logout, me (app/auth.py)
+# /api/notebook/... each user's own notebook (app/notebook.py)
 # /api/...     CRUD for words and review logs, per user (app/routes.py)
 import hashlib
 import os
@@ -17,6 +18,7 @@ from fastapi.staticfiles import StaticFiles
 
 from app.auth import router as auth_router
 from app.db import DatabaseUnavailable, connect
+from app.notebook import router as notebook_router
 from app.routes import router
 
 APP_VERSION = "0.1.0"
@@ -41,6 +43,7 @@ DB_DOWN_MESSAGE = "The database is starting up or paused. Please try again in a 
 app = FastAPI(title="vocab-notebook")
 app.include_router(auth_router)
 app.include_router(router)
+app.include_router(notebook_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 

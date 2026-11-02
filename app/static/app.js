@@ -5,6 +5,8 @@
 //   #/progress    the logged-in user's own progress
 //   #/admin       admins only: manage words (?tab=learners: learners' progress)
 //   #/admin/new   admins only: add a word     #/admin/edit/{id}   edit a word
+//   #/notebook    my own notebook (Vietnamese UI)
+//   #/notebook/new  add a word to it          #/notebook/edit/{id}  edit one of my words
 //   #/review      typed review by topic or random, English <-> Vietnamese; logs results
 // Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
 // The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
@@ -84,6 +86,8 @@ const ICONS = {
   speak: '<path d="M11 5 6 9H3v6h3l5 4V5z"/><path d="M15.5 8.5a5 5 0 0 1 0 7"/>',
   edit: '<path d="M12 20h9"/><path d="M16.5 3.5a2.1 2.1 0 0 1 3 3L7 19l-4 1 1-4Z"/>',
   trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
+  save: '<path d="M6 3h12v18l-6-4-6 4z"/><path d="M12 7v6M9 10h6"/>',
+  saved: '<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>',
 };
 function iconButton(icon, label, extraClass = "") {
   const tag = icon === "edit" ? "a" : "button";
@@ -249,12 +253,16 @@ async function listPage(params) {
   form.q.value = params.get("q") || "";
   list.replaceChildren(...Array.from({ length: 6 }, () => el("li", { className: "card skeleton" })));
 
-  let words, topics;
+  let words, topics, mine;
   try {
-    [words, topics] = await Promise.all([api("/words"), loadTopics()]);
+    [words, topics, mine] = await Promise.all([
+      api("/words"), loadTopics(), api("/notebook/words").catch(() => []),
+    ]);
   } catch (err) {
     return showError(list, err);
   }
+  // Lower-cased words already in my notebook, to show them as saved.
+  const saved = new Set(mine.map((w) => w.word.toLowerCase()));
   renderStats($(root, "data-stats"), words);
 
   const state = {
@@ -325,7 +333,7 @@ async function listPage(params) {
         textContent: words.length ? "No words match." : "No words yet. An admin will add them soon.",
       }));
     } else {
-      list.replaceChildren(...items.slice(0, state.shown).map((w) => wordItem(w)));
+      list.replaceChildren(...items.slice(0, state.shown).map((w) => wordItem(w, saved)));
     }
     more.hidden = items.length <= state.shown;
     more.textContent = `Show more (${items.length - state.shown})`;
@@ -375,11 +383,12 @@ function renderStats(box, words) {
 }
 
 // Learners read words here; changing them happens on the admin page.
-function wordItem(w) {
+// The bookmark button copies the word into my own notebook.
+function wordItem(w, saved = new Set()) {
   const li = el("li", { className: "card word-item" });
   const sound = iconButton("speak", "Listen");
   sound.addEventListener("click", () => speak(w.word));
-  const actions = el("div", { className: "actions" }, sound);
+  const actions = el("div", { className: "actions" }, sound, saveButton(w, saved));
   if (isAdmin()) {
     const edit = iconButton("edit", "Edit in admin");
     edit.href = `#/admin/edit/${w.id}`;
@@ -402,6 +411,239 @@ function wordItem(w) {
     }));
   }
   return li;
+}
+
+function saveButton(w, saved) {
+  const isSaved = () => saved.has(w.word.toLowerCase());
+  const btn = el("button", { className: "icon-btn save-btn" });
+  const paint = () => {
+    const label = isSaved() ? "Đã có trong sổ của tôi" : "Thêm vào sổ của tôi";
+    btn.title = label;
+    btn.setAttribute("aria-label", label);
+    btn.classList.toggle("saved", isSaved());
+    btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[isSaved() ? "saved" : "save"]}</svg>`;
+  };
+  paint();
+  btn.addEventListener("click", async () => {
+    if (isSaved()) return toast(`"${w.word}" đã có trong sổ của bạn`);
+    btn.disabled = true;
+    try {
+      await api(`/notebook/from-bank/${w.id}`, { method: "POST" });
+      saved.add(w.word.toLowerCase());
+      paint();
+      toast(`Đã thêm "${w.word}" vào sổ của bạn`);
+    } catch (err) {
+      toast(err.message);
+    } finally {
+      btn.disabled = false;
+    }
+  });
+  return btn;
+}
+
+// ---------- Sổ của tôi ----------
+async function notebookPage(params) {
+  const root = mount("tpl-notebook");
+  const form = $(root, "data-search");
+  const list = $(root, "data-words");
+  const count = $(root, "data-count");
+  const more = $(root, "data-more");
+  const sort = $(root, "data-sort");
+  form.q.value = params.get("q") || "";
+  list.replaceChildren(...Array.from({ length: 6 }, () => el("li", { className: "card skeleton" })));
+
+  let words;
+  try {
+    [words] = await Promise.all([api("/notebook/words"), loadTopics()]);
+  } catch (err) {
+    return showError(list, err);
+  }
+  const state = { q: form.q.value.trim(), sort: pref("notebook-sort", "new"), shown: PAGE_SIZE };
+  sort.value = state.sort;
+
+  function render() {
+    const q = state.q.toLowerCase();
+    const items = words.filter((w) =>
+      !q || w.word.toLowerCase().includes(q) || w.meaning_vi.toLowerCase().includes(q));
+    if (state.sort === "az") items.sort((a, b) => a.word.localeCompare(b.word));
+    if (state.sort === "za") items.sort((a, b) => b.word.localeCompare(a.word));
+    count.textContent = q ? `${items.length} / ${words.length} từ khớp` : `${words.length} từ trong sổ`;
+    if (items.length === 0) {
+      const empty = el("li", { className: "card empty" });
+      if (words.length) empty.textContent = "Không có từ nào khớp.";
+      else {
+        empty.append("Sổ của bạn chưa có từ nào. ",
+          el("a", { href: "#/notebook/new", textContent: "Thêm từ đầu tiên" }),
+          " hoặc bấm 🔖 ở một từ trong ", el("a", { href: "#/", textContent: "kho chung" }), ".");
+      }
+      list.replaceChildren(empty);
+    } else {
+      list.replaceChildren(...items.slice(0, state.shown).map((w) => notebookItem(w, () => {
+        words = words.filter((x) => x.id !== w.id);
+        render();
+      })));
+    }
+    more.hidden = items.length <= state.shown;
+    more.textContent = `Xem thêm (${items.length - state.shown})`;
+  }
+
+  let typing;
+  form.q.addEventListener("input", () => {
+    clearTimeout(typing);
+    typing = setTimeout(() => {
+      state.q = form.q.value.trim();
+      state.shown = PAGE_SIZE;
+      history.replaceState(null, "", "#/notebook" + (state.q ? "?q=" + encodeURIComponent(state.q) : ""));
+      render();
+    }, 150);
+  });
+  form.addEventListener("submit", (e) => e.preventDefault());
+  sort.addEventListener("change", () => { state.sort = sort.value; savePref("notebook-sort", sort.value); render(); });
+  more.addEventListener("click", () => { state.shown += PAGE_SIZE; render(); });
+  render();
+}
+
+const SOURCE_LABELS = { bank: "từ kho chung", ai: "AI gợi ý" };
+
+function chips(label, items, className = "") {
+  if (!items?.length) return null;
+  return el("p", { className: `chips ${className}` },
+    el("span", { className: "chips-label", textContent: label }),
+    ...items.map((t) => el("span", { className: "chip", textContent: t, lang: "en" })));
+}
+
+function notebookItem(w, onDeleted) {
+  const li = el("li", { className: "card word-item", lang: "vi" });
+  const sound = iconButton("speak", "Nghe phát âm");
+  sound.addEventListener("click", () => speak(w.word));
+  const edit = iconButton("edit", "Sửa");
+  edit.href = `#/notebook/edit/${w.id}`;
+  const del = iconButton("trash", "Xoá khỏi sổ", "danger");
+  del.addEventListener("click", async () => {
+    if (!confirm(`Xoá "${w.word}" khỏi sổ của bạn?`)) return;
+    try {
+      await api(`/notebook/words/${w.id}`, { method: "DELETE" });
+      toast(`Đã xoá "${w.word}"`);
+      onDeleted();
+    } catch (err) {
+      toast(err.message);
+    }
+  });
+
+  const head = el("div", { className: "word-head nb" },
+    el("span", { className: "w", textContent: w.word, lang: "en" }));
+  if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
+  head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, edit, del));
+  li.append(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
+  if (w.definition_en) li.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
+  if (w.examples.length) {
+    li.append(el("ul", { className: "examples" }, ...w.examples.map((ex) => el("li", {},
+      el("span", { className: "ex", textContent: ex.en, lang: "en" }),
+      ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi }) : ""))));
+  }
+  for (const node of [
+    chips("Đồng nghĩa", w.synonyms),
+    chips("Trái nghĩa", w.antonyms, "anti"),
+    chips("Collocations", w.collocations),
+  ]) if (node) li.append(node);
+  if (w.usage_note) li.append(el("p", { className: "note", textContent: w.usage_note }));
+  const foot = el("div", { className: "word-foot" });
+  const topic = topicById(w.topic_id);
+  if (topic) foot.append(el("span", { className: "topic-tag", textContent: `${topic.icon} ${topic.name}` }));
+  if (SOURCE_LABELS[w.source]) foot.append(el("span", { className: "source", textContent: SOURCE_LABELS[w.source] }));
+  if (foot.childNodes.length) li.append(foot);
+  return li;
+}
+
+const splitList = (text) => text.split(/[,;\n]/).map((t) => t.trim()).filter(Boolean);
+
+async function notebookFormPage(id) {
+  const root = mount("tpl-notebook-form");
+  const form = $(root, "data-form");
+  const error = $(root, "data-error");
+  const submit = $(root, "data-submit");
+  $(root, "data-title").textContent = id ? "Sửa từ" : "Thêm từ vào sổ";
+  try {
+    await loadTopics();
+  } catch (err) {
+    return showError(view, err);
+  }
+  topicOptions(form.topic_id);
+  form.topic_id.prepend(el("option", { value: "", textContent: "— Chưa phân loại —" }));
+  form.topic_id.value = "";
+  form.part_of_speech.replaceChildren(el("option", { value: "", textContent: "— chọn —" }),
+    ...Object.keys(POS_LABELS).map((p) => el("option", { value: p, textContent: p })));
+
+  if (id) {
+    try {
+      fillNotebookForm(form, await api(`/notebook/words/${id}`));
+    } catch (err) {
+      return showError(view, err);
+    }
+  }
+  form.word.focus();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    error.hidden = true;
+    const data = readNotebookForm(form);
+    const problem = !data.word ? "Hãy nhập từ tiếng Anh." : !data.meaning_vi ? "Hãy nhập nghĩa tiếng Việt." : "";
+    if (problem) {
+      error.textContent = problem;
+      error.hidden = false;
+      return;
+    }
+    submit.disabled = true;
+    try {
+      await api(id ? `/notebook/words/${id}` : "/notebook/words", {
+        method: id ? "PATCH" : "POST",
+        body: JSON.stringify(data),
+      });
+      toast(id ? "Đã lưu thay đổi" : `Đã thêm "${data.word}" vào sổ`);
+      location.hash = "#/notebook";
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      submit.disabled = false;
+    }
+  });
+}
+
+// The form <-> the JSON of one notebook word. Lists are typed comma-separated.
+function fillNotebookForm(form, w) {
+  for (const k of ["word", "meaning_vi", "ipa", "part_of_speech", "definition_en", "usage_note", "topic_id"]) {
+    if (w[k] !== undefined) form[k].value = w[k] ?? "";
+  }
+  for (const k of ["synonyms", "antonyms", "collocations"]) {
+    if (w[k] !== undefined) form[k].value = (w[k] || []).join(", ");
+  }
+  if (w.examples !== undefined) {
+    for (let i = 0; i < 2; i++) {
+      form[`example_en_${i}`].value = w.examples[i]?.en ?? "";
+      form[`example_vi_${i}`].value = w.examples[i]?.vi ?? "";
+    }
+  }
+}
+
+function readNotebookForm(form) {
+  const val = (name) => form[name].value.trim();
+  const examples = [0, 1]
+    .map((i) => ({ en: val(`example_en_${i}`), vi: val(`example_vi_${i}`) || null }))
+    .filter((ex) => ex.en);
+  return {
+    word: val("word"),
+    meaning_vi: val("meaning_vi"),
+    ipa: val("ipa") || null,
+    part_of_speech: val("part_of_speech") || null,
+    definition_en: val("definition_en") || null,
+    examples,
+    synonyms: splitList(val("synonyms")),
+    antonyms: splitList(val("antonyms")),
+    collocations: splitList(val("collocations")),
+    usage_note: val("usage_note") || null,
+    topic_id: val("topic_id") ? Number(val("topic_id")) : null,
+  };
 }
 
 // ---------- Thêm / Sửa ----------
@@ -957,9 +1199,13 @@ async function route() {
 
   let page = "list";
   const edit = path.match(/^\/admin\/edit\/(\d+)$/);
+  const editMine = path.match(/^\/notebook\/edit\/(\d+)$/);
   if (path === "/admin") { page = "admin"; adminPage(params); }
   else if (path === "/admin/new") { page = "admin"; formPage(null); }
   else if (edit) { page = "admin"; formPage(Number(edit[1])); }
+  else if (path === "/notebook") { page = "notebook"; notebookPage(params); }
+  else if (path === "/notebook/new") { page = "notebook"; notebookFormPage(null); }
+  else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
   else if (path === "/review") { page = "review"; reviewPage(params.get("topic")); }
   else listPage(params);

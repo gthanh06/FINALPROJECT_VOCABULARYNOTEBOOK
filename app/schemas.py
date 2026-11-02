@@ -1,8 +1,8 @@
 # app/schemas.py — the shapes of the JSON going in and out of the API.
 from datetime import date, datetime
-from typing import Literal
+from typing import Annotated, Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field, StringConstraints
 
 
 class WordCreate(BaseModel):
@@ -164,3 +164,66 @@ class UserSummary(User):
     review_count: int
     remembered_count: int
     last_review_at: datetime | None
+
+
+# ---------- My notebook (user_words): every user's own words ----------
+WordSource = Literal["manual", "bank", "ai"]
+ShortText = Annotated[str, StringConstraints(strip_whitespace=True, min_length=1, max_length=100)]
+
+
+class Example(BaseModel):
+    en: str = Field(min_length=1, max_length=300)
+    vi: str | None = Field(default=None, max_length=300)
+
+
+class NotebookWordCreate(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    word: str = Field(min_length=1, max_length=100)
+    meaning_vi: str = Field(min_length=1, max_length=300)
+    ipa: str | None = Field(default=None, max_length=100)
+    part_of_speech: str | None = Field(default=None, max_length=30)
+    definition_en: str | None = Field(default=None, max_length=500)
+    examples: list[Example] = Field(default_factory=list, max_length=5)
+    synonyms: list[ShortText] = Field(default_factory=list, max_length=20)
+    antonyms: list[ShortText] = Field(default_factory=list, max_length=20)
+    collocations: list[ShortText] = Field(default_factory=list, max_length=20)
+    usage_note: str | None = Field(default=None, max_length=1000)
+    topic_id: int | None = None
+    source: Literal["manual", "ai"] = "manual"
+
+
+class NotebookWordUpdate(BaseModel):
+    # Every field is optional: only the fields sent are changed.
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    word: str | None = Field(default=None, min_length=1, max_length=100)
+    meaning_vi: str | None = Field(default=None, min_length=1, max_length=300)
+    ipa: str | None = Field(default=None, max_length=100)
+    part_of_speech: str | None = Field(default=None, max_length=30)
+    definition_en: str | None = Field(default=None, max_length=500)
+    examples: list[Example] | None = Field(default=None, max_length=5)
+    synonyms: list[ShortText] | None = Field(default=None, max_length=20)
+    antonyms: list[ShortText] | None = Field(default=None, max_length=20)
+    collocations: list[ShortText] | None = Field(default=None, max_length=20)
+    usage_note: str | None = Field(default=None, max_length=1000)
+    topic_id: int | None = None
+
+
+class NotebookWord(BaseModel):
+    id: int
+    word: str
+    meaning_vi: str
+    ipa: str | None
+    part_of_speech: str | None
+    definition_en: str | None
+    examples: list[Example]
+    synonyms: list[str]
+    antonyms: list[str]
+    collocations: list[str]
+    usage_note: str | None
+    topic_id: int | None
+    source: WordSource
+    bank_word_id: int | None
+    created_at: datetime
+    updated_at: datetime

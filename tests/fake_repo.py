@@ -2,7 +2,13 @@
 from datetime import UTC, datetime, timedelta
 from zoneinfo import ZoneInfo
 
-from app.repository import UPDATABLE, DuplicateEmail, DuplicateWord, UnknownTopic
+from app.repository import (
+    NOTEBOOK_FIELDS,
+    UPDATABLE,
+    DuplicateEmail,
+    DuplicateWord,
+    UnknownTopic,
+)
 
 
 class FakeStore:
@@ -12,6 +18,8 @@ class FakeStore:
         self.words: dict[int, dict] = {}
         self.reviews: list[dict] = []
         self.next_id = 1
+        self.notebook: dict[int, dict] = {}  # user_words, every user's rows
+        self.next_notebook_id = 1
         self.topics = [
             {"id": 1, "slug": "animals", "name": "Con vật", "icon": "🐾"},
             {"id": 2, "slug": "home", "name": "Nhà cửa & nội thất", "icon": "🛋️"},
@@ -158,6 +166,67 @@ class FakeWordRepository:
             r for r in reversed(self.store.reviews)
             if r["word_id"] == word_id and r["user_id"] == self.user_id
         ]
+
+
+class FakeNotebookRepository:
+    def __init__(self, store: FakeStore, user_id: int):
+        self.store = store
+        self.user_id = user_id
+
+    def _mine(self):
+        return [w for w in self.store.notebook.values() if w["user_id"] == self.user_id]
+
+    def _taken(self, word, except_id=None):
+        return any(w["word"].lower() == word.lower() and w["id"] != except_id for w in self._mine())
+
+    def list_words(self, q=None):
+        rows = sorted(self._mine(), key=lambda w: w["id"], reverse=True)
+        if q:
+            q = q.lower()
+            rows = [w for w in rows if q in w["word"].lower() or q in w["meaning_vi"].lower()]
+        return rows
+
+    def get_word(self, word_id):
+        w = self.store.notebook.get(word_id)
+        return w if w and w["user_id"] == self.user_id else None
+
+    def create_word(self, data):
+        if self._taken(data["word"]):
+            raise DuplicateWord
+        self.store.check_topic(data.get("topic_id"))
+        now = datetime.now(UTC)
+        row = {k: data.get(k) for k in NOTEBOOK_FIELDS}
+        for k in ("examples", "synonyms", "antonyms", "collocations"):
+            row[k] = row[k] or []
+        row.update(
+            id=self.store.next_notebook_id, user_id=self.user_id,
+            source=data.get("source", "manual"), bank_word_id=data.get("bank_word_id"),
+            created_at=now, updated_at=now,
+        )
+        self.store.notebook[row["id"]] = row
+        self.store.next_notebook_id += 1
+        return row
+
+    def update_word(self, word_id, fields):
+        row = self.get_word(word_id)
+        if row is None:
+            return None
+        if "word" in fields and self._taken(fields["word"], except_id=word_id):
+            raise DuplicateWord
+        if "topic_id" in fields:
+            self.store.check_topic(fields["topic_id"])
+        row.update({k: v for k, v in fields.items() if k in NOTEBOOK_FIELDS})
+        row["updated_at"] = datetime.now(UTC)
+        return row
+
+    def delete_word(self, word_id):
+        if self.get_word(word_id) is None:
+            return False
+        del self.store.notebook[word_id]
+        return True
+
+    def get_bank_word(self, word_id):
+        return self.store.words.get(word_id)
 
 
 class FakeUserRepository:
