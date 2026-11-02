@@ -5,7 +5,8 @@ import urllib.error
 
 import pytest
 import pytest
-
+from app.ai import prompts
+from app.ai import service as ai_service
 from app.ai import prompts
 from app.ai.errors import AIBadOutput, AIBusy, AITimeout
 from app.ai.schemas import WordLookup
@@ -310,7 +311,7 @@ def test_failed_ai_calls_are_given_back(learner, ai, repo):
 
 
 def test_cached_answer_from_an_older_schema_is_asked_again(learner, ai, repo):
-    from app.ai import prompts
+   
 
     version = prompts.load("lookup").version
     repo.ai_cache[("lookup", "resilient")] = {
@@ -332,7 +333,7 @@ def test_ai_turned_off_without_a_key(learner):
 
 
 def test_get_ai_reads_the_environment(monkeypatch):
-    from app.ai import service as ai_service
+    
 
     ai_service.get_ai.cache_clear()
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
