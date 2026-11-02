@@ -1708,6 +1708,13 @@ async function route() {
   for (const a of document.querySelectorAll("[data-nav]")) {
     a.classList.toggle("active", a.dataset.nav === page);
   }
+  // On phones the menu scrolls sideways: keep the current page's link in view.
+  const nav = document.querySelector("[data-nav-links]");
+  const active = nav.querySelector("a.active");
+  if (active && nav.scrollWidth > nav.clientWidth) {
+    const left = active.offsetLeft - nav.offsetLeft; // both measured from the sticky topbar
+    nav.scrollLeft = left - (nav.clientWidth - active.offsetWidth) / 2;
+  }
   window.scrollTo(0, 0);
 }
 
