@@ -1,21 +1,18 @@
-HEAD
 import io
 import json
 import urllib.error
 
 import pytest
-import pytest
+from app import ai
 from app.ai import prompts
 from app.ai import service as ai_service
-from app.ai import prompts
 from app.ai.errors import AIBadOutput, AIBusy, AITimeout
 from app.ai.schemas import WordLookup
 from app.ai.service import AIService, get_ai
 from app.main import app
+from app.schemas import AiSuggestIn, AiSuggestion
 from tests.conftest import register
 from tests.fake_ai import RATE_LIMITED, FakeProvider, lookup_answer
-from app import ai
-from app.schemas import AiSuggestIn, AiSuggestion
 
 SUGGESTION = {
     "ipa": "/rɪˈzɪliənt/",
@@ -141,7 +138,6 @@ def test_ai_suggest_endpoint_reports_provider_errors(learner, monkeypatch):
     assert result.json()["detail"] == ai.AIRateLimitError.detail
 
 # tests/test_ai.py — the AI service (validation, retries) and /api/ai, with a fake provider.
-
 
 
 # ---------- AIService ----------
@@ -311,8 +307,6 @@ def test_failed_ai_calls_are_given_back(learner, ai, repo):
 
 
 def test_cached_answer_from_an_older_schema_is_asked_again(learner, ai, repo):
-   
-
     version = prompts.load("lookup").version
     repo.ai_cache[("lookup", "resilient")] = {
         "prompt_version": version, "model": "old", "data": {"word": "resilient"},
@@ -333,8 +327,6 @@ def test_ai_turned_off_without_a_key(learner):
 
 
 def test_get_ai_reads_the_environment(monkeypatch):
-    
-
     ai_service.get_ai.cache_clear()
     monkeypatch.delenv("GEMINI_API_KEY", raising=False)
     assert ai_service.get_ai() is None
