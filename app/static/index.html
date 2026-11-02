@@ -16,6 +16,7 @@
       </a>
       <nav data-nav-links hidden>
         <a href="#/" data-nav="list">Words</a>
+        <a href="#/notebook" data-nav="notebook">Sổ của tôi</a>
         <a href="#/review" data-nav="review">Practice</a>
         <a href="#/progress" data-nav="progress">Progress</a>
         <a href="#/admin" data-nav="admin" data-admin-only hidden>Admin</a>
@@ -146,6 +147,101 @@
         <div class="row end">
           <a class="btn ghost" href="#/admin">Cancel</a>
           <button class="btn primary" type="submit" data-submit>Save</button>
+        </div>
+      </form>
+    </section>
+  </template>
+
+  <!-- My notebook: the logged-in user's own words (Vietnamese UI) -->
+  <template id="tpl-notebook">
+    <section lang="vi">
+      <div class="hero">
+        <div>
+          <h1>Sổ của tôi</h1>
+          <p class="muted">Từ vựng riêng của bạn: tự thêm từ mới hoặc lưu từ trong kho chung.</p>
+        </div>
+        <div class="hero-actions">
+          <a class="btn" href="#/">Lấy từ kho chung</a>
+          <a class="btn primary" href="#/notebook/new">+ Thêm từ</a>
+        </div>
+      </div>
+      <div class="toolbar">
+        <form class="search" data-search role="search">
+          <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
+          <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm" autocomplete="off">
+        </form>
+        <select data-sort aria-label="Sắp xếp">
+          <option value="new">Mới nhất</option>
+          <option value="az">A → Z</option>
+          <option value="za">Z → A</option>
+        </select>
+      </div>
+      <p class="muted count" data-count></p>
+      <ul class="words" data-words></ul>
+      <div class="row center">
+        <button class="btn" data-more hidden>Xem thêm</button>
+      </div>
+    </section>
+  </template>
+
+  <!-- My notebook: add / edit one of my words -->
+  <template id="tpl-notebook-form">
+    <section class="narrow" lang="vi">
+      <a class="back" href="#/notebook">← Sổ của tôi</a>
+      <h1 data-title></h1>
+      <form class="card form" data-form novalidate>
+        <div class="grid-2">
+          <label><span>Từ tiếng Anh <span class="req">*</span></span>
+            <input name="word" required maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vd: resilient">
+          </label>
+          <label>Loại từ
+            <select name="part_of_speech" data-pos-select></select>
+          </label>
+        </div>
+        <div class="grid-2">
+          <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
+            <input name="meaning_vi" required maxlength="300" autocomplete="off" placeholder="vd: kiên cường, mau phục hồi">
+          </label>
+          <label>Phiên âm IPA
+            <input name="ipa" maxlength="100" autocomplete="off" spellcheck="false" placeholder="vd: /rɪˈzɪliənt/">
+          </label>
+        </div>
+        <label>Định nghĩa tiếng Anh
+          <textarea name="definition_en" rows="2" maxlength="500" placeholder="vd: able to recover quickly from difficulties"></textarea>
+        </label>
+        <fieldset class="examples-field">
+          <legend>Câu ví dụ</legend>
+          <div class="example-row">
+            <textarea name="example_en_0" rows="2" maxlength="300" placeholder="Câu tiếng Anh"></textarea>
+            <textarea name="example_vi_0" rows="2" maxlength="300" placeholder="Dịch tiếng Việt"></textarea>
+          </div>
+          <div class="example-row">
+            <textarea name="example_en_1" rows="2" maxlength="300" placeholder="Câu tiếng Anh"></textarea>
+            <textarea name="example_vi_1" rows="2" maxlength="300" placeholder="Dịch tiếng Việt"></textarea>
+          </div>
+        </fieldset>
+        <div class="grid-3">
+          <label>Từ đồng nghĩa
+            <input name="synonyms" autocomplete="off" placeholder="tough, hardy">
+          </label>
+          <label>Từ trái nghĩa
+            <input name="antonyms" autocomplete="off" placeholder="fragile">
+          </label>
+          <label>Collocations
+            <input name="collocations" autocomplete="off" placeholder="remarkably resilient">
+          </label>
+        </div>
+        <p class="muted small hint-line">Nhiều mục thì cách nhau bằng dấu phẩy.</p>
+        <label>Ghi chú cách dùng
+          <textarea name="usage_note" rows="2" maxlength="1000" placeholder="vd: resilient to sth"></textarea>
+        </label>
+        <label><span>Chủ đề</span>
+          <select name="topic_id" data-topic-select></select>
+        </label>
+        <p class="error" data-error hidden></p>
+        <div class="row end">
+          <a class="btn ghost" href="#/notebook">Huỷ</a>
+          <button class="btn primary" type="submit" data-submit>Lưu vào sổ</button>
         </div>
       </form>
     </section>

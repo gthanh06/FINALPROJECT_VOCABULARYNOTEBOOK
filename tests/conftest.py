@@ -14,8 +14,14 @@ from fastapi.testclient import TestClient  # noqa: E402
 
 from app.auth import CurrentUser, get_conn, get_users  # noqa: E402
 from app.main import app  # noqa: E402
+from app.notebook import get_notebook  # noqa: E402
 from app.routes import get_repo  # noqa: E402
-from tests.fake_repo import FakeStore, FakeUserRepository, FakeWordRepository  # noqa: E402
+from tests.fake_repo import (  # noqa: E402
+    FakeNotebookRepository,
+    FakeStore,
+    FakeUserRepository,
+    FakeWordRepository,
+)
 
 PASSWORD = "correct-horse-1"
 
@@ -38,9 +44,13 @@ def new_browser(repo, users):
     def fake_get_repo(user: CurrentUser):
         return FakeWordRepository(repo, user["id"])
 
+    def fake_get_notebook(user: CurrentUser):
+        return FakeNotebookRepository(repo, user["id"])
+
     app.dependency_overrides[get_conn] = lambda: None
     app.dependency_overrides[get_users] = lambda: users
     app.dependency_overrides[get_repo] = fake_get_repo
+    app.dependency_overrides[get_notebook] = fake_get_notebook
     yield lambda: TestClient(app)
     app.dependency_overrides.clear()
 

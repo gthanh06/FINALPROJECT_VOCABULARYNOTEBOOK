@@ -10,7 +10,10 @@ def test_home_serves_the_ui():
     r = TestClient(app).get("/")
     assert r.status_code == 200
     assert r.headers["content-type"].startswith("text/html")
-    for page in ('id="tpl-list"', 'id="tpl-form"', 'id="tpl-review"'):
+    for page in (
+        'id="tpl-list"', 'id="tpl-form"', 'id="tpl-review"',
+        'id="tpl-notebook"', 'id="tpl-notebook-form"',
+    ):
         assert page in r.text
 
 

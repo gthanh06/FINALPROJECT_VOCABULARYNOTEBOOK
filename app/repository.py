@@ -6,8 +6,13 @@
 from datetime import UTC, datetime, timedelta
 
 import psycopg
+from psycopg.types.json import Jsonb
 
 UPDATABLE = ("word", "meaning_vi", "part_of_speech", "example", "usage_note", "topic_id")
+NOTEBOOK_FIELDS = (
+    "word", "meaning_vi", "ipa", "part_of_speech", "definition_en", "examples",
+    "synonyms", "antonyms", "collocations", "usage_note", "topic_id",
+)
 
 
 class DuplicateWord(Exception):
@@ -189,6 +194,84 @@ def progress(conn: psycopg.Connection, user_id: int) -> dict:
         "last_7_days": days,
         "to_review": to_review,
     }
+
+
+class NotebookRepository:
+    """One user's own notebook (user_words). Every query is limited to that user."""
+
+    def __init__(self, conn: psycopg.Connection, user_id: int):
+        self.conn = conn
+        self.user_id = user_id
+
+    def list_words(self, q: str | None = None) -> list[dict]:
+        if q:
+            return self.conn.execute(
+                "SELECT * FROM user_words WHERE user_id = %s"
+                " AND (word ILIKE %s OR meaning_vi ILIKE %s)"
+                " ORDER BY created_at DESC, id DESC",
+                (self.user_id, f"%{q}%", f"%{q}%"),
+            ).fetchall()
+        return self.conn.execute(
+            "SELECT * FROM user_words WHERE user_id = %s ORDER BY created_at DESC, id DESC",
+            (self.user_id,),
+        ).fetchall()
+
+    def get_word(self, word_id: int) -> dict | None:
+        return self.conn.execute(
+            "SELECT * FROM user_words WHERE id = %s AND user_id = %s", (word_id, self.user_id)
+        ).fetchone()
+
+    def create_word(self, data: dict) -> dict:
+        row = {k: data.get(k) for k in NOTEBOOK_FIELDS}
+        row["examples"] = Jsonb(row["examples"] or [])
+        for k in ("synonyms", "antonyms", "collocations"):
+            row[k] = row[k] or []
+        try:
+            return self.conn.execute(
+                "INSERT INTO user_words (user_id, source, bank_word_id, "
+                + ", ".join(NOTEBOOK_FIELDS)
+                + ") VALUES (%(user_id)s, %(source)s, %(bank_word_id)s, "
+                + ", ".join(f"%({k})s" for k in NOTEBOOK_FIELDS)
+                + ") RETURNING *",
+                {
+                    **row,
+                    "user_id": self.user_id,
+                    "source": data.get("source", "manual"),
+                    "bank_word_id": data.get("bank_word_id"),
+                },
+            ).fetchone()
+        except psycopg.errors.UniqueViolation as err:
+            raise DuplicateWord from err
+        except psycopg.errors.ForeignKeyViolation as err:
+            raise UnknownTopic from err
+
+    def update_word(self, word_id: int, fields: dict) -> dict | None:
+        fields = {k: v for k, v in fields.items() if k in NOTEBOOK_FIELDS}
+        if not fields:
+            return self.get_word(word_id)
+        if "examples" in fields:
+            fields["examples"] = Jsonb(fields["examples"] or [])
+        # Column names come from the NOTEBOOK_FIELDS whitelist, values are parameters.
+        sets = ", ".join(f"{k} = %({k})s" for k in fields)
+        try:
+            return self.conn.execute(
+                f"UPDATE user_words SET {sets}, updated_at = now()"
+                " WHERE id = %(id)s AND user_id = %(user_id)s RETURNING *",
+                {**fields, "id": word_id, "user_id": self.user_id},
+            ).fetchone()
+        except psycopg.errors.UniqueViolation as err:
+            raise DuplicateWord from err
+        except psycopg.errors.ForeignKeyViolation as err:
+            raise UnknownTopic from err
+
+    def delete_word(self, word_id: int) -> bool:
+        cur = self.conn.execute(
+            "DELETE FROM user_words WHERE id = %s AND user_id = %s", (word_id, self.user_id)
+        )
+        return cur.rowcount == 1
+
+    def get_bank_word(self, word_id: int) -> dict | None:
+        return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
 
 
 class UserRepository:
