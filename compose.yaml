@@ -19,6 +19,11 @@ services:
 
   app:
     build: .
+    # GEMINI_API_KEY, GEMINI_MODEL, AI_LIMIT_* ... come from .env (optional file, never committed).
+    # DATABASE_URL below always wins, so the app uses this local database, not Supabase.
+    env_file:
+      - path: .env
+        required: false
     environment:
       DATABASE_URL: postgresql://vocab:vocab@db:5432/vocab
       APP_ENV: development

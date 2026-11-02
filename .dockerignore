@@ -19,3 +19,5 @@ Dockerfile
 compose.yaml
 render.yaml
 *.md
+# ...except the prompts sent to the AI, which the app reads at run time.
+!prompts/*.md

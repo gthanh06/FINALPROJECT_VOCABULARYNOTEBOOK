@@ -274,6 +274,62 @@ class NotebookRepository:
         return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
 
 
+AI_USAGE_LOCK = 7301  # first key of the per-user advisory lock (any number unique in the app)
+
+
+class AIRepository:
+    """AI answer cache (shared by everyone) and per-user AI usage."""
+
+    def __init__(self, conn: psycopg.Connection):
+        self.conn = conn
+
+    def cache_get(self, kind: str, key: str, prompt_version: str) -> dict | None:
+        row = self.conn.execute(
+            "SELECT data FROM ai_cache WHERE kind = %s AND key = %s AND prompt_version = %s",
+            (kind, key, prompt_version),
+        ).fetchone()
+        return row["data"] if row else None
+
+    def cache_put(self, kind: str, key: str, prompt_version: str, model: str, data: dict) -> None:
+        self.conn.execute(
+            "INSERT INTO ai_cache (kind, key, prompt_version, model, data)"
+            " VALUES (%s, %s, %s, %s, %s) ON CONFLICT (kind, key) DO UPDATE SET"
+            " prompt_version = EXCLUDED.prompt_version, model = EXCLUDED.model,"
+            " data = EXCLUDED.data, created_at = now()",
+            (kind, key, prompt_version, model, Jsonb(data)),
+        )
+
+    def usage_since(self, user_id: int, since: datetime) -> int:
+        return self.conn.execute(
+            "SELECT count(*) AS n FROM ai_usage WHERE user_id = %s AND created_at >= %s",
+            (user_id, since),
+        ).fetchone()["n"]
+
+    def topics(self) -> list[dict]:
+        return self.conn.execute("SELECT id, slug FROM topics ORDER BY position").fetchall()
+
+    def lock_usage(self, user_id: int) -> None:
+        # One user's AI requests take turns for the limit check (until commit / rollback).
+        self.conn.execute("SELECT pg_advisory_xact_lock(%s, %s)", (AI_USAGE_LOCK, user_id))
+
+    def add_usage(self, user_id: int, feature: str) -> int:
+        # Rows older than the daily limit's window are no longer needed.
+        self.conn.execute(
+            "DELETE FROM ai_usage WHERE user_id = %s AND created_at < now() - interval '2 days'",
+            (user_id,),
+        )
+        return self.conn.execute(
+            "INSERT INTO ai_usage (user_id, feature) VALUES (%s, %s) RETURNING id",
+            (user_id, feature),
+        ).fetchone()["id"]
+
+    def delete_usage(self, usage_id: int) -> None:
+        self.conn.execute("DELETE FROM ai_usage WHERE id = %s", (usage_id,))
+
+    def commit(self) -> None:
+        self.conn.commit()
+
+
 class UserRepository:
     def __init__(self, conn: psycopg.Connection):
         self.conn = conn
