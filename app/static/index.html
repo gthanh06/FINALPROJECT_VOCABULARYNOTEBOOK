@@ -162,6 +162,7 @@
         </div>
         <div class="hero-actions">
           <a class="btn" href="#/">Lấy từ kho chung</a>
+          <a class="btn" href="#/notebook/sentence">✍️ Đặt câu</a>
           <a class="btn primary" href="#/notebook/new">+ Thêm từ</a>
         </div>
       </div>
@@ -249,6 +250,35 @@
           <button class="btn primary" type="submit" data-submit>Lưu vào sổ</button>
         </div>
       </form>
+    </section>
+  </template>
+
+  <!-- Đặt câu: the learner writes a sentence with one notebook word, the AI grades it -->
+  <template id="tpl-sentence">
+    <section class="narrow" lang="vi">
+      <a class="back" href="#/notebook">← Sổ của tôi</a>
+      <h1>Đặt câu</h1>
+      <p class="muted">Chọn một từ trong sổ, tự đặt một câu tiếng Anh với từ đó. AI sẽ chấm, giải thích lỗi bằng tiếng Việt và gợi ý câu đã sửa.</p>
+      <div data-sentence-body>
+        <form class="card form" data-form novalidate>
+          <div class="row sentence-pick">
+            <label class="grow">Từ cần luyện
+              <select name="word_id" data-word-select></select>
+            </label>
+            <button type="button" class="btn" data-random>🎲 Từ ngẫu nhiên</button>
+          </div>
+          <div class="sentence-word" data-word-card></div>
+          <label>Câu của bạn
+            <textarea name="sentence" rows="3" maxlength="300" lang="en" spellcheck="false"></textarea>
+          </label>
+          <p class="muted small hint-line" data-ai-hint>Bấm <strong>Chấm câu</strong> hoặc Ctrl + Enter.</p>
+          <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
+          <div class="row end">
+            <button class="btn primary" type="submit" data-submit>✨ Chấm câu</button>
+          </div>
+        </form>
+        <div class="card sentence-result" data-result aria-live="polite" hidden></div>
+      </div>
     </section>
   </template>
 

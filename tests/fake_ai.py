@@ -48,3 +48,21 @@ def lookup_answer(word="resilient", **changes) -> dict:
         "topic": "animals",
         **changes,
     }
+
+
+def sentence_answer(verdict="incorrect", **changes) -> dict:
+    """A valid answer to prompts/check_sentence.md."""
+    wrong = verdict != "correct"
+    return {
+        "uses_word": True,
+        "verdict": verdict,
+        "errors": [{
+            "type": "grammar",
+            "excerpt": "She resilient",
+            "explanation_vi": "Thiếu động từ to be: cần 'She is resilient'.",
+        }] if wrong else [],
+        "corrected": "She is very resilient.",
+        "better_version": None,
+        "feedback_vi": "Ý hay! Chỉ cần thêm động từ to be." if wrong else "Câu rất tốt!",
+        **changes,
+    }
