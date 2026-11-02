@@ -88,3 +88,20 @@ class WordSuggestions(BaseModel):
 
     def is_complete(self) -> bool:
         return len(self.words) >= 3
+
+
+class ChatCorrection(BaseModel):
+    original: str = Field(max_length=300, description="The wrong part of the learner's message.")
+    corrected: str = Field(min_length=1, max_length=300)
+    explanation_vi: str = Field(min_length=3, max_length=400, description="In Vietnamese.")
+
+
+class ChatReply(BaseModel):
+    correction: ChatCorrection | None = Field(
+        default=None, description="Only for a real mistake in the learner's last message."
+    )
+    learner_used: list[str] = Field(
+        max_length=10, description="Target words the learner used correctly in their last message."
+    )
+    reply: str = Field(min_length=1, max_length=600, description="Your answer, in simple English.")
+    reply_vi: str = Field(min_length=1, max_length=800, description="Vietnamese translation.")

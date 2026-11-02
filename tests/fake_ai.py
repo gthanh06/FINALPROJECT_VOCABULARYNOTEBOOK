@@ -79,3 +79,14 @@ def suggest_answer(*words: str) -> dict:
         "definition_en": f"definition of {w}",
         "example": {"en": f"I like the {w} a lot.", "vi": f"Tôi rất thích {w}."},
     } for w in words]}
+
+
+def chat_answer(reply="Do you like reading books?", **changes) -> dict:
+    """A valid answer to prompts/chat.md."""
+    return {
+        "correction": None,
+        "learner_used": [],
+        "reply": reply,
+        "reply_vi": "Bạn có thích đọc sách không?",
+        **changes,
+    }
