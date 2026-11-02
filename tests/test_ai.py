@@ -168,6 +168,28 @@ def test_ai_busy_is_a_503_with_the_friendly_message(learner, ai):
     assert r.json()["detail"] == "Hệ thống AI đang bận, thử lại sau ít phút."
 
 
+def test_failed_ai_calls_are_given_back(learner, ai, repo):
+    ai.queue(RATE_LIMITED, RATE_LIMITED, RATE_LIMITED, "bad json", "bad json")
+    assert learner.post("/api/ai/lookup", json={"word": "one"}).status_code == 503
+    assert learner.post("/api/ai/lookup", json={"word": "two"}).status_code == 502
+    assert learner.get("/api/ai/status").json()["used_today"] == 0
+    assert repo.ai_usage == []
+
+
+def test_cached_answer_from_an_older_schema_is_asked_again(learner, ai, repo):
+    from app.ai import prompts
+
+    version = prompts.load("lookup").version
+    repo.ai_cache[("lookup", "resilient")] = {
+        "prompt_version": version, "model": "old", "data": {"word": "resilient"},
+    }
+    ai.queue(lookup_answer())
+    r = learner.post("/api/ai/lookup", json={"word": "resilient"})
+    assert r.status_code == 200
+    assert r.json()["cached"] is False
+    assert len(ai.calls) == 1
+
+
 def test_ai_turned_off_without_a_key(learner):
     app.dependency_overrides[get_ai] = lambda: None
     assert learner.get("/api/ai/status").json()["enabled"] is False

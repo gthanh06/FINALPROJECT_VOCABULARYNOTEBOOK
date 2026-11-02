@@ -634,8 +634,14 @@ function setupAiFill(root, form, status, submit) {
     button.disabled = true;
     button.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
     hint.textContent = "Tính năng AI chưa được bật trên máy chủ. Bạn vẫn có thể tự nhập từ.";
-  } else {
-    hint.append(` Hôm nay còn ${Math.max(0, status.limit_per_day - status.used_today)}/${status.limit_per_day} lượt (tra lại từ đã có thì không tính).`);
+  }
+  const quota = el("span");
+  function showQuota(s) {
+    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt (tra lại từ đã có thì không tính).`;
+  }
+  if (status?.enabled) {
+    hint.append(quota);
+    showQuota(status);
   }
 
   function show(kind, ...children) {
@@ -711,6 +717,7 @@ function setupAiFill(root, form, status, submit) {
       clearTimeout(timer);
       button.disabled = submit.disabled = false;
       root.querySelector("[data-form]").removeAttribute("aria-busy");
+      api("/ai/status").then(showQuota).catch(() => {}); // the count may have changed
     }
   }
 

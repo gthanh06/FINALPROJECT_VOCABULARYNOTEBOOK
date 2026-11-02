@@ -8,6 +8,11 @@ import os
 
 os.environ.setdefault("DATABASE_URL", "postgresql://unused@localhost/none")
 os.environ.setdefault("APP_ENV", "test")
+# app/__init__.py loads the developer's .env; these win over it, so the tests do not
+# depend on whoever runs them (a real key, other limits). Empty key = AI off by default.
+os.environ["GEMINI_API_KEY"] = ""
+os.environ["AI_LIMIT_PER_MINUTE"] = "5"
+os.environ["AI_LIMIT_PER_DAY"] = "50"
 
 import pytest  # noqa: E402
 from fastapi.testclient import TestClient  # noqa: E402

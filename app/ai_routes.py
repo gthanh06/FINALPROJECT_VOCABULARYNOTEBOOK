@@ -7,11 +7,11 @@
 # Every route needs a logged-in user. Calls that reach the AI count towards the
 # user's limits (app/ratelimit.py); cached answers do not.
 import re
-from typing import Annotated
+from typing import Annotated, TypeVar
 
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ValidationError
 
 from app import ratelimit
 from app.ai.errors import AIError, AINotConfigured
@@ -21,6 +21,8 @@ from app.auth import CurrentUser, get_conn
 from app.repository import AIRepository
 
 router = APIRouter(prefix="/api/ai")
+
+M = TypeVar("M", bound=BaseModel)
 
 # Letters, spaces, apostrophes and hyphens only: "look after", "mother-in-law", "don't".
 WORD_PATTERN = re.compile(r"^[a-z][a-z' -]{0,59}$")
@@ -78,6 +80,19 @@ class LookupOut(BaseModel):
     topic_id: int | None  # the suggested topic, as an id of the topics table
 
 
+def cached_answer(
+    repo: AIRepository, kind: str, key: str, version: str, output: type[M]
+) -> M | None:
+    data = repo.cache_get(kind, key, version)
+    if data is None:
+        return None
+    try:
+        return output.model_validate(data)
+    except ValidationError:
+        # Saved by an older version of the schema: ask the AI again instead of failing.
+        return None
+
+
 def normalize_word(text: str) -> str:
     return " ".join(text.lower().replace("’", "'").split())
 
@@ -94,14 +109,13 @@ def lookup(body: LookupIn, ai: AI, repo: AIRepo, user: CurrentUser):
     topic_ids = {t["slug"]: t["id"] for t in topics}
     version = ai.prompt_version("lookup")
 
-    cached = repo.cache_get("lookup", word, version)
-    if cached is not None:
-        result = WordLookup.model_validate(cached)
+    result = cached_answer(repo, "lookup", word, version, WordLookup)
+    if result is not None:
         return {"result": result, "cached": True, "topic_id": topic_ids.get(result.topic)}
 
-    ratelimit.check_and_count(repo, user["id"], "lookup")
     try:
-        result = ai.run("lookup", WordLookup, word=word, topics=", ".join(topic_ids))
+        with ratelimit.counted(repo, user["id"], "lookup"):
+            result = ai.run("lookup", WordLookup, word=word, topics=", ".join(topic_ids))
     except AIError as err:
         raise ai_http_error(err) from None
     if result.topic not in topic_ids:

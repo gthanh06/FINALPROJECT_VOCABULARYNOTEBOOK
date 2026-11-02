@@ -274,6 +274,9 @@ class NotebookRepository:
         return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
 
 
+AI_USAGE_LOCK = 7301  # first key of the per-user advisory lock (any number unique in the app)
+
+
 class AIRepository:
     """AI answer cache (shared by everyone) and per-user AI usage."""
 
@@ -305,10 +308,26 @@ class AIRepository:
     def topics(self) -> list[dict]:
         return self.conn.execute("SELECT id, slug FROM topics ORDER BY position").fetchall()
 
-    def add_usage(self, user_id: int, feature: str) -> None:
+    def lock_usage(self, user_id: int) -> None:
+        # One user's AI requests take turns for the limit check (until commit / rollback).
+        self.conn.execute("SELECT pg_advisory_xact_lock(%s, %s)", (AI_USAGE_LOCK, user_id))
+
+    def add_usage(self, user_id: int, feature: str) -> int:
+        # Rows older than the daily limit's window are no longer needed.
         self.conn.execute(
-            "INSERT INTO ai_usage (user_id, feature) VALUES (%s, %s)", (user_id, feature)
+            "DELETE FROM ai_usage WHERE user_id = %s AND created_at < now() - interval '2 days'",
+            (user_id,),
         )
+        return self.conn.execute(
+            "INSERT INTO ai_usage (user_id, feature) VALUES (%s, %s) RETURNING id",
+            (user_id, feature),
+        ).fetchone()["id"]
+
+    def delete_usage(self, usage_id: int) -> None:
+        self.conn.execute("DELETE FROM ai_usage WHERE id = %s", (usage_id,))
+
+    def commit(self) -> None:
+        self.conn.commit()
 
 
 class UserRepository:

@@ -252,10 +252,22 @@ class FakeAIRepository:
             u["user_id"] == user_id and u["created_at"] >= since for u in self.store.ai_usage
         )
 
+    def lock_usage(self, user_id):
+        pass
+
     def add_usage(self, user_id, feature):
-        self.store.ai_usage.append(
-            {"user_id": user_id, "feature": feature, "created_at": datetime.now(UTC)}
-        )
+        usage_id = len(self.store.ai_usage) + 1
+        self.store.ai_usage.append({
+            "id": usage_id, "user_id": user_id, "feature": feature,
+            "created_at": datetime.now(UTC),
+        })
+        return usage_id
+
+    def delete_usage(self, usage_id):
+        self.store.ai_usage = [u for u in self.store.ai_usage if u["id"] != usage_id]
+
+    def commit(self):
+        pass
 
 
 class FakeUserRepository:
