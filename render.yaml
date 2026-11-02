@@ -9,7 +9,8 @@ services:
     region: singapore
     branch: main
     healthCheckPath: /health
-    autoDeploy: true
+    # GitHub Actions triggers deploys only after CI passes on main.
+    autoDeploy: false
     envVars:
       - key: DATABASE_URL
         sync: false
@@ -20,3 +21,7 @@ services:
         sync: false
       - key: APP_ENV
         value: production
+      - key: GEMINI_API_KEY
+        sync: false
+      - key: GEMINI_MODEL
+        value: gemini-2.5-flash

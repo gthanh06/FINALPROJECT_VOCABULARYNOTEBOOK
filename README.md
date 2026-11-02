@@ -8,7 +8,7 @@ Sổ tay từ vựng Anh–Việt: lưu từ, nghĩa, loại từ, câu ví dụ
 - Database: PostgreSQL (Supabase ở production, container Postgres khi chạy local)
 - Deploy: Render (HTTPS)
 - CI/CD: GitHub Actions
-- AI: Gemini API (dự phòng Groq)
+- AI: Gemini API (gợi ý phía server)
 
 ## Tài khoản, vai trò & đăng nhập
 
@@ -59,15 +59,24 @@ ruff check . && pytest
 
 Test không cần database (dùng repository giả trong `tests/fake_repo.py`).
 
+## CI/CD, AI và bảo mật
+
+- Pull request chạy Ruff, pytest, Docker build và Gitleaks trên toàn bộ lịch sử Git (`fetch-depth: 0`). Không merge nếu một job thất bại.
+- Sau khi các job trên thành công khi push/merge vào `main`, GitHub Actions gọi Render Deploy Hook. Thêm repository secret `RENDER_DEPLOY_HOOK_URL` trong Settings → Secrets and variables → Actions. Render Blueprint tắt auto-deploy để tránh deploy hai lần.
+- Bật branch protection cho `main` trong GitHub → Settings → Branches → Add branch protection rule: yêu cầu pull request, ít nhất 1 approval, và các status check `Scan Git history` cùng `Lint, test, and build`; chặn force-push và xoá nhánh. Các quy tắc này cần được bật trong cài đặt GitHub của repository.
+- Tạo `.env` từ [.env.example](.env.example) khi chạy local. `GEMINI_API_KEY` được giữ ở server; endpoint `POST /api/notebook/ai-suggest` yêu cầu đăng nhập, giới hạn thời gian chờ và thử lại lỗi 429/timeout/phản hồi rỗng. AI chỉ điền trường đang trống trên form.
+
 ## Deploy lên Render
 
-Render build từ `Dockerfile` và cấp HTTPS (`https://<tên-service>.onrender.com`) tự động.
+Render build từ `Dockerfile` và cấp HTTPS (`https://<tên-service>.onrender.com`); GitHub Actions khởi chạy deploy sau khi CI thành công.
 
 1. Render Dashboard → **New → Blueprint** → chọn repo này. Render đọc `render.yaml` và tạo web service `vocab-notebook` (Docker, free, Singapore, health check `/health`).
 2. Khi được hỏi, nhập biến môi trường bí mật:
    - `DATABASE_URL`: connection string của Supabase (Project Settings → Database → Connection string, chế độ *Transaction pooler*, cổng 6543). Thêm `?sslmode=require` ở cuối nếu chưa có.
-3. `APP_ENV=production` đã khai báo sẵn trong `render.yaml`.
-4. Mỗi lần merge vào `main`, Render tự build và deploy lại. Container chạy `python -m app.migrate` trước khi khởi động nên schema luôn được cập nhật.
+   - `ADMIN_EMAIL` và `ADMIN_PASSWORD`: tài khoản admin.
+   - `GEMINI_API_KEY`: API key Gemini để bật gợi ý AI.
+3. `APP_ENV=production` và `GEMINI_MODEL` đã khai báo sẵn trong `render.yaml`.
+4. Thêm secret `RENDER_DEPLOY_HOOK_URL` như phần CI/CD ở trên. Mỗi lần merge vào `main`, GitHub Actions chỉ kích hoạt deploy sau khi CI thành công. Container chạy `python -m app.migrate` trước khi khởi động nên schema luôn được cập nhật.
 
 Kiểm tra sau deploy: `/health` → `{"status":"ok"}`, `/health/db` → `{"db":"ok", ...}`, `/api/info` → `"env": "production"`.
 
@@ -80,6 +89,8 @@ Biến môi trường:
 | `PORT` | không | Render tự đặt; mặc định 8000 |
 | `ADMIN_EMAIL` | không | Email tài khoản admin, tạo / nâng quyền khi khởi động |
 | `ADMIN_PASSWORD` | không | Mật khẩu admin (≥ 8 ký tự); là secret, không commit |
+| `GEMINI_API_KEY` | không | API key Gemini; cần để dùng gợi ý AI, không commit |
+| `GEMINI_MODEL` | không | Mô hình Gemini; mặc định `gemini-2.5-flash` |
 
 ## Quy tắc làm việc
 

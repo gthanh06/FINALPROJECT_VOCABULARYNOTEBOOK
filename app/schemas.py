@@ -210,6 +210,24 @@ class NotebookWordUpdate(BaseModel):
     topic_id: int | None = None
 
 
+class AiSuggestIn(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    word: str = Field(min_length=1, max_length=100)
+    meaning_vi: str = Field(min_length=1, max_length=300)
+
+
+class AiSuggestion(BaseModel):
+    ipa: str = Field(max_length=100)
+    part_of_speech: str = Field(min_length=1, max_length=30)
+    definition_en: str = Field(min_length=1, max_length=500)
+    examples: list[Example] = Field(min_length=1, max_length=2)
+    synonyms: list[ShortText] = Field(max_length=20)
+    antonyms: list[ShortText] = Field(max_length=20)
+    collocations: list[ShortText] = Field(max_length=20)
+    usage_note: str | None = Field(max_length=1000)
+
+
 class NotebookWord(BaseModel):
     id: int
     word: str

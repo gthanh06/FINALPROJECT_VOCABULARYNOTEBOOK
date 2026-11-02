@@ -14,9 +14,16 @@ from typing import Annotated
 import psycopg
 from fastapi import APIRouter, Depends, HTTPException, Response
 
+from app import ai
 from app.auth import CurrentUser, get_conn
 from app.repository import DuplicateWord, NotebookRepository, UnknownTopic
-from app.schemas import NotebookWord, NotebookWordCreate, NotebookWordUpdate
+from app.schemas import (
+    AiSuggestIn,
+    AiSuggestion,
+    NotebookWord,
+    NotebookWordCreate,
+    NotebookWordUpdate,
+)
 
 router = APIRouter(prefix="/api/notebook")
 
@@ -61,6 +68,14 @@ def clean(data: dict) -> dict:
             v = [{"en": e["en"].strip(), "vi": (e.get("vi") or "").strip() or None} for e in v]
         out[k] = v
     return out
+
+
+@router.post("/ai-suggest", response_model=AiSuggestion)
+def ai_suggest(body: AiSuggestIn, _: CurrentUser):
+    try:
+        return ai.suggest(body)
+    except ai.AIServiceError as error:
+        raise HTTPException(status_code=error.status_code, detail=error.detail) from None
 
 
 @router.get("/words", response_model=list[NotebookWord])

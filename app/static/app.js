@@ -574,6 +574,48 @@ async function notebookFormPage(id) {
   form.part_of_speech.replaceChildren(el("option", { value: "", textContent: "— chọn —" }),
     ...Object.keys(POS_LABELS).map((p) => el("option", { value: p, textContent: p })));
 
+  let aiSuggested = false;
+  const suggest = $(root, "data-ai-suggest");
+  suggest.addEventListener("click", async () => {
+    if (!form.word.value.trim() || !form.meaning_vi.value.trim()) {
+      error.textContent = "Hãy nhập từ tiếng Anh và nghĩa tiếng Việt trước.";
+      error.hidden = false;
+      return;
+    }
+    error.hidden = true;
+    suggest.disabled = true;
+    suggest.textContent = "Đang xin gợi ý...";
+    try {
+      const result = await api("/notebook/ai-suggest", {
+        method: "POST",
+        body: JSON.stringify({
+          word: form.word.value.trim(),
+          meaning_vi: form.meaning_vi.value.trim(),
+        }),
+      });
+      for (const key of ["ipa", "part_of_speech", "definition_en", "usage_note"]) {
+        if (!form[key].value && result[key]) form[key].value = result[key];
+      }
+      for (const key of ["synonyms", "antonyms", "collocations"]) {
+        if (!form[key].value && result[key].length) form[key].value = result[key].join(", ");
+      }
+      for (let i = 0; i < result.examples.length; i++) {
+        const en = form[`example_en_${i}`];
+        const vi = form[`example_vi_${i}`];
+        if (!en.value) en.value = result.examples[i].en;
+        if (!vi.value && result.examples[i].vi) vi.value = result.examples[i].vi;
+      }
+      aiSuggested = true;
+      toast("Đã điền gợi ý AI vào các trường còn trống. Hãy kiểm tra trước khi lưu.");
+    } catch (err) {
+      error.textContent = err.message;
+      error.hidden = false;
+    } finally {
+      suggest.disabled = false;
+      suggest.textContent = "✨ Gợi ý bằng AI";
+    }
+  });
+
   if (id) {
     try {
       fillNotebookForm(form, await api(`/notebook/words/${id}`));
@@ -587,6 +629,7 @@ async function notebookFormPage(id) {
     e.preventDefault();
     error.hidden = true;
     const data = readNotebookForm(form);
+    if (!id && aiSuggested) data.source = "ai";
     const problem = !data.word ? "Hãy nhập từ tiếng Anh." : !data.meaning_vi ? "Hãy nhập nghĩa tiếng Việt." : "";
     if (problem) {
       error.textContent = problem;
