@@ -3,10 +3,12 @@
 # The routes only talk to WordRepository / UserRepository, so the unit tests can
 # swap them for in-memory fakes and run in CI without any database.
 # Words are shared by everyone; review history is kept per user.
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 
 import psycopg
 from psycopg.types.json import Jsonb
+
+from app.srs import schedule
 
 UPDATABLE = ("word", "meaning_vi", "part_of_speech", "example", "usage_note", "topic_id")
 NOTEBOOK_FIELDS = (
@@ -273,6 +275,57 @@ class NotebookRepository:
     def get_bank_word(self, word_id: int) -> dict | None:
         return self.conn.execute("SELECT * FROM words WHERE id = %s", (word_id,)).fetchone()
 
+    def list_due(self, today: date) -> list[dict]:
+        return self.conn.execute(
+            "SELECT id, word, meaning_vi, part_of_speech, definition_en, examples,"
+            " srs_level, srs_ease, srs_interval, next_review"
+            " FROM user_words WHERE user_id = %s"
+            " AND (next_review IS NULL OR next_review <= %s)"
+            " ORDER BY next_review NULLS FIRST, created_at, id",
+            (self.user_id, today),
+        ).fetchall()
+
+    def review_srs(self, word_id: int, quality: int, today: date) -> dict | None:
+        with self.conn.transaction():
+            word = self.conn.execute(
+                "SELECT srs_level, srs_ease, srs_interval FROM user_words"
+                " WHERE id = %s AND user_id = %s FOR UPDATE",
+                (word_id, self.user_id),
+            ).fetchone()
+            if word is None:
+                return None
+            result = schedule(
+                word["srs_level"], float(word["srs_ease"]), word["srs_interval"], quality, today
+            )
+            self.conn.execute(
+                "UPDATE user_words SET srs_level = %s, srs_ease = %s, srs_interval = %s,"
+                " next_review = %s WHERE id = %s AND user_id = %s",
+                (
+                    result["level"], result["ease"], result["interval_days"],
+                    result["next_review"], word_id, self.user_id,
+                ),
+            )
+            return self.conn.execute(
+                "INSERT INTO srs_reviews"
+                " (user_id, word_id, quality, level, ease, interval_days, next_review)"
+                " VALUES (%s, %s, %s, %s, %s, %s, %s)"
+                " RETURNING level, ease, interval_days, next_review",
+                (
+                    self.user_id, word_id, quality, result["level"], result["ease"],
+                    result["interval_days"], result["next_review"],
+                ),
+            ).fetchone()
+
+    def list_reviews_srs(self, word_id: int) -> list[dict] | None:
+        if self.get_word(word_id) is None:
+            return None
+        return self.conn.execute(
+            "SELECT quality, level, ease, interval_days, next_review, reviewed_at"
+            " FROM srs_reviews WHERE user_id = %s AND word_id = %s"
+            " ORDER BY reviewed_at DESC, id DESC",
+            (self.user_id, word_id),
+        ).fetchall()
+
 
 AI_USAGE_LOCK = 7301  # first key of the per-user advisory lock (any number unique in the app)
 
@@ -328,6 +381,36 @@ class AIRepository:
 
     def commit(self) -> None:
         self.conn.commit()
+
+
+class QuizRepository:
+    """Persist quiz answer keys on the server and bind each quiz to its owner."""
+
+    def __init__(self, conn: psycopg.Connection, user_id: int):
+        self.conn = conn
+        self.user_id = user_id
+
+    def create(self, questions: list[dict]) -> int:
+        row = self.conn.execute(
+            "INSERT INTO quizzes (user_id, questions) VALUES (%s, %s) RETURNING id",
+            (self.user_id, Jsonb(questions)),
+        ).fetchone()
+        return row["id"]
+
+    def get(self, quiz_id: int) -> dict | None:
+        return self.conn.execute(
+            "SELECT id, questions, result, submitted_at FROM quizzes"
+            " WHERE id = %s AND user_id = %s",
+            (quiz_id, self.user_id),
+        ).fetchone()
+
+    def finish(self, quiz_id: int, result: dict) -> bool:
+        row = self.conn.execute(
+            "UPDATE quizzes SET result = %s, submitted_at = now()"
+            " WHERE id = %s AND user_id = %s AND submitted_at IS NULL RETURNING id",
+            (Jsonb(result), quiz_id, self.user_id),
+        ).fetchone()
+        return row is not None
 
 
 class UserRepository:

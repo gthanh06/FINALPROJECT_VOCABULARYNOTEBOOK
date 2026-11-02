@@ -227,3 +227,77 @@ class NotebookWord(BaseModel):
     bank_word_id: int | None
     created_at: datetime
     updated_at: datetime
+
+
+class QuizStartIn(BaseModel):
+    count: int = Field(default=10, ge=3, le=30)
+
+
+class QuizQuestion(BaseModel):
+    id: int
+    kind: Literal["multiple_choice", "fill_blank", "meaning"]
+    prompt: str
+    choices: list[str] | None = None
+
+
+class QuizStartOut(BaseModel):
+    quiz_id: int
+    questions: list[QuizQuestion]
+
+
+class QuizAnswerIn(BaseModel):
+    question_id: int
+    answer: str = Field(max_length=300)
+
+
+class QuizSubmitIn(BaseModel):
+    answers: list[QuizAnswerIn] = Field(min_length=1, max_length=30)
+
+
+class QuizQuestionResult(QuizQuestion):
+    answer: str
+    expected: str
+    correct: bool
+
+
+class QuizResult(BaseModel):
+    score: int
+    total: int
+    questions: list[QuizQuestionResult]
+
+
+class SrsReviewIn(BaseModel):
+    quality: int = Field(ge=0, le=5)
+
+
+class SrsWord(BaseModel):
+    id: int
+    word: str
+    meaning_vi: str
+    part_of_speech: str | None
+    definition_en: str | None
+    examples: list[Example]
+    srs_level: int
+    srs_ease: float
+    srs_interval: int
+    next_review: date | None
+
+
+class SrsToday(BaseModel):
+    due: int
+    cards: list[SrsWord]
+
+
+class SrsReviewResult(BaseModel):
+    level: int
+    ease: float
+    interval_days: int
+    next_review: date
+
+
+class Mnemonic(BaseModel):
+    mnemonic: str = Field(min_length=1, max_length=500)
+
+
+class MnemonicOut(Mnemonic):
+    cached: bool

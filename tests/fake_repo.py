@@ -1,5 +1,5 @@
 # tests/fake_repo.py — same methods as app.repository's classes, kept in memory.
-from datetime import UTC, datetime, timedelta
+from datetime import UTC, date, datetime, timedelta
 from zoneinfo import ZoneInfo
 
 from app.repository import (
@@ -9,6 +9,7 @@ from app.repository import (
     DuplicateWord,
     UnknownTopic,
 )
+from app.srs import schedule
 
 
 class FakeStore:
@@ -22,6 +23,9 @@ class FakeStore:
         self.next_notebook_id = 1
         self.ai_cache: dict[tuple[str, str], dict] = {}
         self.ai_usage: list[dict] = []
+        self.quizzes: dict[int, dict] = {}
+        self.next_quiz_id = 1
+        self.srs_reviews: list[dict] = []
         self.topics = [
             {"id": 1, "slug": "animals", "name": "Con vật", "icon": "🐾"},
             {"id": 2, "slug": "home", "name": "Nhà cửa & nội thất", "icon": "🛋️"},
@@ -203,7 +207,8 @@ class FakeNotebookRepository:
         row.update(
             id=self.store.next_notebook_id, user_id=self.user_id,
             source=data.get("source", "manual"), bank_word_id=data.get("bank_word_id"),
-            created_at=now, updated_at=now,
+            created_at=now, updated_at=now, srs_level=0, srs_ease=2.5,
+            srs_interval=0, next_review=None,
         )
         self.store.notebook[row["id"]] = row
         self.store.next_notebook_id += 1
@@ -229,6 +234,70 @@ class FakeNotebookRepository:
 
     def get_bank_word(self, word_id):
         return self.store.words.get(word_id)
+
+    def list_due(self, today: date):
+        rows = [
+            w for w in self._mine()
+            if w.get("next_review") is None or w["next_review"] <= today
+        ]
+        return [
+            {k: v for k, v in w.items() if k != "user_id"}
+            for w in sorted(rows, key=lambda w: (w.get("next_review") or date.min, w["id"]))
+        ]
+
+    def review_srs(self, word_id, quality, today):
+        word = self.get_word(word_id)
+        if word is None:
+            return None
+        result = schedule(
+            word.get("srs_level", 0), word.get("srs_ease", 2.5),
+            word.get("srs_interval", 0), quality, today,
+        )
+        word.update(
+            srs_level=result["level"], srs_ease=result["ease"],
+            srs_interval=result["interval_days"], next_review=result["next_review"],
+        )
+        self.store.srs_reviews.append({
+            "user_id": self.user_id, "word_id": word_id, "quality": quality,
+            **result, "reviewed_at": datetime.now(UTC),
+        })
+        return result
+
+    def list_reviews_srs(self, word_id):
+        if self.get_word(word_id) is None:
+            return None
+        return [
+            {k: v for k, v in review.items() if k not in ("user_id", "word_id")}
+            for review in reversed(self.store.srs_reviews)
+            if review["user_id"] == self.user_id and review["word_id"] == word_id
+        ]
+
+
+class FakeQuizRepository:
+    def __init__(self, store: FakeStore, user_id: int):
+        self.store = store
+        self.user_id = user_id
+
+    def create(self, questions):
+        quiz_id = self.store.next_quiz_id
+        self.store.quizzes[quiz_id] = {
+            "id": quiz_id, "user_id": self.user_id, "questions": questions,
+            "result": None, "submitted_at": None,
+        }
+        self.store.next_quiz_id += 1
+        return quiz_id
+
+    def get(self, quiz_id):
+        quiz = self.store.quizzes.get(quiz_id)
+        return quiz if quiz and quiz["user_id"] == self.user_id else None
+
+    def finish(self, quiz_id, result):
+        quiz = self.get(quiz_id)
+        if quiz is None or quiz["submitted_at"] is not None:
+            return False
+        quiz["result"] = result
+        quiz["submitted_at"] = datetime.now(UTC)
+        return True
 
 
 class FakeAIRepository:

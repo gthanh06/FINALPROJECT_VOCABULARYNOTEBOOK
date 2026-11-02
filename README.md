@@ -46,7 +46,11 @@ Mở http://localhost:8000. Migration tự chạy khi container app khởi độ
 | Thêm từ | `/#/new` |
 | Sửa từ | `/#/edit/{id}` |
 | Ôn tập (thẻ nhớ) | `/#/review` |
+| Quiz từ sổ tay (trắc nghiệm, điền từ, chọn nghĩa) | `/#/quiz` |
+| Ôn cách quãng SM-2, các từ đến hạn hôm nay | `/#/srs` |
 | API docs | `/docs` |
+
+Quiz tạo từ các từ trong sổ riêng, lưu đáp án trên server và chỉ trả lời đúng sau khi nộp bài. Ôn cách quãng cũng dùng sổ riêng: tự đánh giá mức nhớ 0–5, server cập nhật ease factor, khoảng cách và ngày ôn kế tiếp theo giờ Việt Nam. Khi chọn mức 0–2, ứng dụng xin AI tạo mẹo ghi nhớ; kết quả được cache dùng lại. Các API nằm dưới `/api/quiz` và `/api/srs`.
 
 Dừng: `docker compose down` (giữ dữ liệu) hoặc `docker compose down -v` (xoá luôn dữ liệu).
 

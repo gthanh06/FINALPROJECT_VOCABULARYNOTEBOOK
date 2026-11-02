@@ -132,7 +132,7 @@ textarea { resize: vertical; }
 /* ---------- List page ---------- */
 .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .hero p { margin: 0; }
-.hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.hero-actions { display: flex; gap: 8px; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
 .stat { padding: 14px 16px; }
@@ -319,6 +319,20 @@ textarea { resize: vertical; }
 
 .done { text-align: center; padding: 32px 24px; display: grid; gap: 8px; justify-items: center; }
 .big { font-size: 1.4rem; font-weight: 700; margin: 8px 0 0; }
+.quiz-form, .quiz-results { display: grid; gap: 16px; margin-top: 16px; }
+.quiz-question { margin: 0; padding: 12px; border: 1px solid var(--border); border-radius: 10px; }
+.quiz-question legend { padding: 0 4px; font-weight: 650; }
+.quiz-option { display: flex; align-items: center; gap: 8px; padding: 6px 2px; cursor: pointer; }
+.quiz-option input { width: auto; }
+.quiz-result { border-left: 3px solid var(--success); padding: 8px 12px; background: var(--surface-2); }
+.quiz-result.bad { border-color: var(--danger); }
+.quiz-result p { margin: 4px 0 0; }
+.srs-card { display: grid; gap: 14px; justify-items: center; text-align: center; }
+.srs-card > p, .srs-card h2, .srs-answer h3 { margin: 0; }
+.srs-answer { width: 100%; }
+.srs-answer .example { color: var(--muted); font-style: italic; }
+.srs-ratings { display: flex; flex-wrap: wrap; justify-content: center; gap: 8px; }
+.srs-ratings .btn { flex: 1 1 100px; }
 .ring {
   --p: 0; width: 120px; height: 120px; border-radius: 50%; display: grid; place-items: center;
   background: conic-gradient(var(--success) calc(var(--p) * 1%), var(--surface-2) 0);

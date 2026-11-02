@@ -6,6 +6,8 @@
 # /api/info    app name, version and environment
 # /api/auth/.. register, login, logout, me (app/auth.py)
 # /api/notebook/... each user's own notebook (app/notebook.py)
+# /api/quiz/... quizzes built and graded from that user's notebook (app/quiz.py)
+# /api/srs/... spaced-repetition schedule and mnemonic (app/srs_routes.py)
 # /api/ai/...  AI features, Gemini is only called from the server (app/ai_routes.py, app/ai/)
 # /api/...     CRUD for words and review logs, per user (app/routes.py)
 import hashlib
@@ -21,7 +23,9 @@ from app.ai_routes import router as ai_router
 from app.auth import router as auth_router
 from app.db import DatabaseUnavailable, connect
 from app.notebook import router as notebook_router
+from app.quiz import router as quiz_router
 from app.routes import router
+from app.srs_routes import router as srs_router
 
 APP_VERSION = "0.1.0"
 APP_ENV = os.environ.get("APP_ENV", "development")
@@ -46,6 +50,8 @@ app = FastAPI(title="vocab-notebook")
 app.include_router(auth_router)
 app.include_router(router)
 app.include_router(notebook_router)
+app.include_router(quiz_router)
+app.include_router(srs_router)
 app.include_router(ai_router)
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 

@@ -22,11 +22,13 @@ from app.ai_routes import get_ai_repo  # noqa: E402
 from app.auth import CurrentUser, get_conn, get_users  # noqa: E402
 from app.main import app  # noqa: E402
 from app.notebook import get_notebook  # noqa: E402
+from app.quiz import get_quiz_repo  # noqa: E402
 from app.routes import get_repo  # noqa: E402
 from tests.fake_ai import FakeProvider  # noqa: E402
 from tests.fake_repo import (  # noqa: E402
     FakeAIRepository,
     FakeNotebookRepository,
+    FakeQuizRepository,
     FakeStore,
     FakeUserRepository,
     FakeWordRepository,
@@ -62,10 +64,14 @@ def new_browser(repo, users, ai):
     def fake_get_notebook(user: CurrentUser):
         return FakeNotebookRepository(repo, user["id"])
 
+    def fake_get_quiz_repo(user: CurrentUser):
+        return FakeQuizRepository(repo, user["id"])
+
     app.dependency_overrides[get_conn] = lambda: None
     app.dependency_overrides[get_users] = lambda: users
     app.dependency_overrides[get_repo] = fake_get_repo
     app.dependency_overrides[get_notebook] = fake_get_notebook
+    app.dependency_overrides[get_quiz_repo] = fake_get_quiz_repo
     app.dependency_overrides[get_ai_repo] = lambda: FakeAIRepository(repo)
     # No sleeping between retries in tests.
     app.dependency_overrides[get_ai] = lambda: AIService(ai, sleep=ai.sleeps.append)
