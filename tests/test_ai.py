@@ -3,6 +3,7 @@ import json
 import urllib.error
 
 import pytest
+
 from app import ai
 from app.ai import prompts
 from app.ai import service as ai_service
