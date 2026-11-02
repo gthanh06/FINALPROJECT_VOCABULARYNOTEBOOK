@@ -166,6 +166,7 @@
           <a class="btn" href="#/">Lấy từ kho chung</a>
           <a class="btn" href="#/notebook/suggest">✨ Gợi ý từ</a>
           <a class="btn" href="#/notebook/sentence">✍️ Đặt câu</a>
+          <a class="btn" href="#/notebook/chat">💬 Luyện hội thoại</a>
 
           <a class="btn" href="#/quiz">Quiz sổ tay</a>
           <a class="btn" href="#/srs">Ôn hôm nay</a>
@@ -257,6 +258,31 @@
           <button class="btn primary" type="submit" data-submit>Lưu vào sổ</button>
         </div>
       </form>
+    </section>
+  </template>
+
+  <!-- Luyện hội thoại: an English chat with an AI tutor that uses the learner's notebook words -->
+  <template id="tpl-chat">
+    <section class="narrow" lang="vi">
+      <a class="back" href="#/notebook">← Sổ của tôi</a>
+      <h1>Luyện hội thoại</h1>
+      <p class="muted">Trò chuyện bằng tiếng Anh với AI. AI dùng các từ trong sổ của bạn và gợi ý bạn dùng lại chúng; câu sai sẽ được sửa nhẹ nhàng.</p>
+      <div data-chat-body>
+        <div class="card chat-words">
+          <div class="row">
+            <span class="chips-label">Từ cần luyện</span>
+            <button class="btn small" type="button" data-new-words>🔀 Đổi từ</button>
+          </div>
+          <div class="chips" data-chat-words></div>
+          <p class="muted small" data-chat-score></p>
+        </div>
+        <div class="chat-log" data-chat-log aria-live="polite"></div>
+        <form class="chat-form" data-form novalidate>
+          <textarea name="message" rows="2" maxlength="500" lang="en" placeholder="Viết bằng tiếng Anh… (Enter để gửi, Shift + Enter xuống dòng)" aria-label="Tin nhắn"></textarea>
+          <button class="btn primary" type="submit" data-submit>Gửi</button>
+        </form>
+        <p class="muted small" data-ai-hint>Mỗi tin nhắn tốn 1 lượt AI.</p>
+      </div>
     </section>
   </template>
 

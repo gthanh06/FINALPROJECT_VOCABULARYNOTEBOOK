@@ -7,6 +7,8 @@
 #                       in Vietnamese, corrected sentence (word_id is one of my notebook words)
 # POST /api/ai/suggest-words  {"topic_id": 3, "level": "B1", "exclude": [...]} -> about 10 new
 #                       words for that topic and level, minus the words already in my notebook
+# POST /api/ai/chat     {"word_ids": [...], "messages": [...]} -> the tutor's next chat message,
+#                       using my notebook words; the browser keeps the conversation
 #
 # Every route needs a logged-in user. Calls that reach the AI count towards the
 # user's limits (app/ratelimit.py); cached answers do not.
@@ -20,7 +22,13 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app import ratelimit
 from app.ai.errors import AIError, AINotConfigured
-from app.ai.schemas import SentenceCheck, SuggestedWord, WordLookup, WordSuggestions
+from app.ai.schemas import (
+    ChatReply,
+    SentenceCheck,
+    SuggestedWord,
+    WordLookup,
+    WordSuggestions,
+)
 from app.ai.service import AIService, get_ai
 from app.auth import CurrentUser, get_conn
 from app.notebook import Notebook
@@ -258,3 +266,50 @@ def suggest_words(body: SuggestIn, ai: AI, repo: AIRepo, notebook: Notebook, use
         repo.cache_put("suggest", key, version, ai.model, result.model_dump())
     words = new_words(result.words, mine | shown)
     return {"words": words, "topic_id": topic["id"], "cached": False}
+
+
+# ---------- Luyện hội thoại (chatbot dùng từ trong sổ) ----------
+class ChatMessage(BaseModel):
+    role: Literal["learner", "tutor"]
+    text: str = Field(min_length=1, max_length=500)
+
+
+class ChatIn(BaseModel):
+    word_ids: list[int] = Field(min_length=1, max_length=10)  # words to practise, from my notebook
+    messages: list[ChatMessage] = Field(default_factory=list, max_length=20)
+
+
+class ChatOut(BaseModel):
+    reply: ChatReply
+
+
+def transcript(messages: list[ChatMessage]) -> str:
+    if not messages:
+        return "(no messages yet: start the conversation)"
+    names = {"learner": "Learner", "tutor": "Tutor"}
+    return "\n".join(f"{names[m.role]}: {' '.join(m.text.split())}" for m in messages)
+
+
+@router.post("/chat", response_model=ChatOut)
+def chat(body: ChatIn, ai: AI, repo: AIRepo, notebook: Notebook, user: CurrentUser):
+    if body.messages and body.messages[-1].role != "learner":
+        raise HTTPException(status_code=422, detail="Tin nhắn cuối phải là của bạn.")
+    mine = {w["id"]: w for w in notebook.list_words()}
+    words = [mine[i] for i in dict.fromkeys(body.word_ids) if i in mine]
+    if len(words) != len(set(body.word_ids)):
+        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+    targets = "\n".join(f"- {w['word']}: {w['meaning_vi']}" for w in words)
+    try:
+        with ratelimit.counted(repo, user["id"], "chat"):
+            reply = ai.run(
+                "chat", ChatReply, words=targets, conversation=transcript(body.messages)
+            )
+    except AIError as err:
+        raise ai_http_error(err) from None
+    # Only the target words count as "used"; the first message has nothing to check.
+    allowed = {normalize_word(w["word"]) for w in words}
+    used = [w for w in map(normalize_word, reply.learner_used) if w in allowed]
+    reply.learner_used = list(dict.fromkeys(used)) if body.messages else []
+    if not body.messages:
+        reply.correction = None
+    return {"reply": reply}

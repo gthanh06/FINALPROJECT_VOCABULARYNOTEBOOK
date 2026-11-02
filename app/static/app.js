@@ -9,6 +9,7 @@
 //   #/notebook/new  add a word to it          #/notebook/edit/{id}  edit one of my words
 //   #/notebook/sentence  write a sentence with one of my words, the AI grades it (?word={id})
 //   #/notebook/suggest   AI suggests new words by topic + level, tick them to add (?topic={id})
+//   #/notebook/chat      chat in English with an AI tutor that uses my notebook words
 //   #/review      typed review by topic or random, English <-> Vietnamese; logs results
 //   #/quiz        server-graded quiz from the private notebook
 //   #/srs         spaced repetition for words due today
@@ -732,6 +733,144 @@ function setupAiFill(root, form, status, submit) {
   // Fields the user changes after the AI filled them lose the highlight.
   form.addEventListener("input", (e) => e.target.classList.remove("ai-filled"));
   return { filled: () => filled };
+}
+
+// ---------- Luyện hội thoại (chatbot dùng từ trong sổ) ----------
+// The conversation lives in this page only; each turn sends it to POST /api/ai/chat.
+const CHAT_WORDS = 6;
+const CHAT_HISTORY = 20; // the server accepts at most 20 messages
+
+async function chatPage() {
+  const root = mount("tpl-chat");
+  const body = $(root, "data-chat-body");
+  const chipsBox = $(root, "data-chat-words");
+  const log = $(root, "data-chat-log");
+  const form = $(root, "data-form");
+  const send = $(root, "data-submit");
+  const hint = $(root, "data-ai-hint");
+
+  let words, status;
+  try {
+    [words, status] = await Promise.all([api("/notebook/words"), api("/ai/status").catch(() => null)]);
+  } catch (err) {
+    return showError(body, err);
+  }
+  if (!words.length) {
+    return body.replaceChildren(el("p", { className: "card empty" }, "Sổ của bạn chưa có từ nào. ",
+      el("a", { href: "#/notebook/new", textContent: "Thêm từ" }), " rồi quay lại luyện hội thoại nhé."));
+  }
+  const aiOn = Boolean(status?.enabled);
+  if (!aiOn) {
+    send.disabled = form.message.disabled = true;
+    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa trò chuyện được.";
+  }
+
+  let targets = [];
+  let history = []; // [{role: "learner" | "tutor", text}]
+  let busy = false;
+  const used = new Set();
+
+  function pickWords() {
+    targets = shuffle([...words]).slice(0, CHAT_WORDS);
+    used.clear();
+    chipsBox.replaceChildren(...targets.map((w) => {
+      const chip = el("span", { className: "chip", textContent: w.word, title: w.meaning_vi, lang: "en" });
+      chip.dataset.word = w.word.toLowerCase();
+      return chip;
+    }));
+  }
+  function markUsed(list) {
+    for (const word of list) used.add(word);
+    for (const chip of chipsBox.children) chip.classList.toggle("used", used.has(chip.dataset.word));
+    const n = targets.filter((w) => used.has(w.word.toLowerCase())).length;
+    $(root, "data-chat-score").textContent = `Bạn đã dùng đúng ${n}/${targets.length} từ`;
+  }
+
+  function bubble(role, text) {
+    const b = el("div", { className: `bubble ${role}` }, el("p", { textContent: text, lang: role === "tutor" ? "en" : "" }));
+    log.append(b);
+    b.scrollIntoView({ behavior: "smooth", block: "end" });
+    return b;
+  }
+  function tutorBubble(r) {
+    const b = bubble("tutor", r.reply);
+    const vi = el("p", { className: "vi", textContent: r.reply_vi, hidden: true });
+    const toggle = el("button", { type: "button", className: "btn small ghost", textContent: "Dịch" });
+    toggle.addEventListener("click", () => { vi.hidden = !vi.hidden; toggle.textContent = vi.hidden ? "Dịch" : "Ẩn dịch"; });
+    const sound = iconButton("speak", "Nghe");
+    sound.addEventListener("click", () => speak(r.reply));
+    b.append(vi, el("div", { className: "bubble-tools" }, sound, toggle));
+  }
+  function correctionNote(learnerBubble, c) {
+    learnerBubble.append(el("div", { className: "bubble-fix" },
+      el("span", { textContent: "✏️ " }),
+      el("s", { textContent: c.original, lang: "en" }), " → ",
+      el("strong", { textContent: c.corrected, lang: "en" }),
+      el("span", { className: "muted", textContent: ` · ${c.explanation_vi}` })));
+  }
+
+  async function turn(learnerBubble) {
+    busy = true;
+    send.disabled = true;
+    const typing = el("div", { className: "bubble tutor typing" }, el("span", { className: "spinner", ariaHidden: "true" }), " Đang trả lời…");
+    log.append(typing);
+    typing.scrollIntoView({ behavior: "smooth", block: "end" });
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), AI_TIMEOUT_MS);
+    try {
+      const res = await api("/ai/chat", {
+        method: "POST",
+        body: JSON.stringify({ word_ids: targets.map((w) => w.id), messages: history.slice(-CHAT_HISTORY) }),
+        signal: controller.signal,
+      });
+      typing.remove();
+      const r = res.reply;
+      if (learnerBubble && r.correction) correctionNote(learnerBubble, r.correction);
+      markUsed(r.learner_used);
+      history.push({ role: "tutor", text: r.reply });
+      tutorBubble(r);
+    } catch (err) {
+      typing.remove();
+      const message = err.name === "AbortError" ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      const box = el("div", { className: "ai-panel error" }, el("span", { className: "grow", textContent: message }), again);
+      again.addEventListener("click", () => { box.remove(); turn(learnerBubble); });
+      log.append(box);
+    } finally {
+      clearTimeout(timer);
+      busy = false;
+      send.disabled = !aiOn;
+      form.message.focus();
+      api("/ai/status").then((s) => {
+        hint.textContent = `Mỗi tin nhắn tốn 1 lượt AI. Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt.`;
+      }).catch(() => {});
+    }
+  }
+
+  function restart() {
+    pickWords();
+    history = [];
+    log.replaceChildren();
+    markUsed([]);
+    if (aiOn) turn(null);
+  }
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    const text = form.message.value.trim();
+    if (!text || busy || !aiOn) return;
+    form.message.value = "";
+    history.push({ role: "learner", text });
+    turn(bubble("learner", text));
+  });
+  form.message.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
+  });
+  $(root, "data-new-words").addEventListener("click", () => {
+    if (history.length > 1 && !confirm("Bắt đầu cuộc trò chuyện mới với bộ từ khác?")) return;
+    restart();
+  });
+  restart();
 }
 
 // ---------- Gợi ý từ theo chủ đề + trình độ ----------
@@ -1864,6 +2003,7 @@ async function route() {
   else if (path === "/notebook/new") { page = "notebook"; notebookFormPage(null); }
   else if (path === "/notebook/sentence") { page = "notebook"; sentencePage(params); }
   else if (path === "/notebook/suggest") { page = "notebook"; suggestPage(params); }
+  else if (path === "/notebook/chat") { page = "notebook"; chatPage(); }
   else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
   else if (path === "/quiz") { page = "quiz"; quizPage(); }
