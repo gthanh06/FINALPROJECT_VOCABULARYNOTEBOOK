@@ -141,6 +141,20 @@ class SentenceOut(BaseModel):
     cached: bool
 
 
+def is_form_of(form: str, word: str) -> bool:
+    """Regular inflections only: readers, persevered, studies. Irregular ones (went) fail."""
+    form, word = form.strip().lower(), word.strip().lower()
+    stems = {word, word[:-1] if word.endswith(("e", "y")) else word}
+    return bool(form) and any(form.startswith(stem) for stem in stems)
+
+
+def keeps_word(result: SentenceCheck, word: str) -> bool:
+    # The corrected (and better) sentence must still practise the target word.
+    form = result.word_form.lower()
+    sentences = [result.corrected, result.better_version or form]
+    return is_form_of(form, word) and all(form in s.lower() for s in sentences)
+
+
 def sentence_key(word: dict, sentence: str) -> str:
     # The verdict depends on the word, the meaning studied and the exact sentence.
     raw = "\n".join([word["word"].lower(), word.get("part_of_speech") or "", word["meaning_vi"],
@@ -169,6 +183,7 @@ def check_sentence(
         with ratelimit.counted(repo, user["id"], "check_sentence"):
             result = ai.run(
                 "check_sentence", SentenceCheck,
+                accept=lambda r: keeps_word(r, word["word"]),
                 word=word["word"], part_of_speech=word.get("part_of_speech") or "any",
                 meaning_vi=word["meaning_vi"], sentence=sentence,
             )

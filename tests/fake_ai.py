@@ -61,6 +61,7 @@ def sentence_answer(verdict="incorrect", **changes) -> dict:
             "excerpt": "She resilient",
             "explanation_vi": "Thiếu động từ to be: cần 'She is resilient'.",
         }] if wrong else [],
+        "word_form": "resilient",
         "corrected": "She is very resilient.",
         "better_version": None,
         "feedback_vi": "Ý hay! Chỉ cần thêm động từ to be." if wrong else "Câu rất tốt!",

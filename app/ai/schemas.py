@@ -60,6 +60,9 @@ class SentenceCheck(BaseModel):
     uses_word: bool = Field(description="The sentence contains the word or an inflected form.")
     verdict: Literal["correct", "minor_issues", "incorrect"]
     errors: list[SentenceError] = Field(max_length=5)
+    word_form: str = Field(
+        max_length=100, description="The form of the target word used in corrected, e.g. readers."
+    )
     corrected: str = Field(min_length=1, max_length=400, description="Minimal fixes only.")
     better_version: str | None = Field(default=None, max_length=400)
     feedback_vi: str = Field(min_length=3, max_length=600, description="Short, in Vietnamese.")
