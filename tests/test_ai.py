@@ -4,7 +4,15 @@ import json
 import urllib.error
 
 import pytest
+import pytest
 
+from app.ai import prompts
+from app.ai.errors import AIBadOutput, AIBusy, AITimeout
+from app.ai.schemas import WordLookup
+from app.ai.service import AIService, get_ai
+from app.main import app
+from tests.conftest import register
+from tests.fake_ai import RATE_LIMITED, FakeProvider, lookup_answer
 from app import ai
 from app.schemas import AiSuggestIn, AiSuggestion
 
@@ -132,15 +140,7 @@ def test_ai_suggest_endpoint_reports_provider_errors(learner, monkeypatch):
     assert result.json()["detail"] == ai.AIRateLimitError.detail
 
 # tests/test_ai.py — the AI service (validation, retries) and /api/ai, with a fake provider.
-import pytest
 
-from app.ai import prompts
-from app.ai.errors import AIBadOutput, AIBusy, AITimeout
-from app.ai.schemas import WordLookup
-from app.ai.service import AIService, get_ai
-from app.main import app
-from tests.conftest import register
-from tests.fake_ai import RATE_LIMITED, FakeProvider, lookup_answer
 
 
 # ---------- AIService ----------
