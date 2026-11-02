@@ -52,8 +52,9 @@ jobs:
         env:
           RENDER_DEPLOY_HOOK_URL: ${{ secrets.RENDER_DEPLOY_HOOK_URL }}
         run: |
+          # Without the secret, Render's own autoDeploy (render.yaml) handles the deploy.
           if [ -z "$RENDER_DEPLOY_HOOK_URL" ]; then
-            echo "::error::Set the RENDER_DEPLOY_HOOK_URL repository secret to enable deployments."
-            exit 1
+            echo "::notice::RENDER_DEPLOY_HOOK_URL is not set; skipping (Render autoDeploy is on)."
+            exit 0
           fi
           curl --fail-with-body --silent --show-error --request POST "$RENDER_DEPLOY_HOOK_URL"
