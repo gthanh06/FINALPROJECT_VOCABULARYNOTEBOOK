@@ -72,3 +72,19 @@ class SentenceCheck(BaseModel):
         if self.verdict != "correct" and not self.errors and self.uses_word:
             return False
         return bool(self.corrected.strip() and self.feedback_vi.strip())
+
+
+class SuggestedWord(BaseModel):
+    word: str = Field(min_length=1, max_length=60, description="Lower case, correctly spelled.")
+    part_of_speech: PartOfSpeech | None = None
+    ipa: str = Field(max_length=100, description="IPA between slashes.")
+    meaning_vi: str = Field(min_length=1, max_length=200, description="Short Vietnamese meaning.")
+    definition_en: str = Field(max_length=300, description="Short, simple English definition.")
+    example: ExampleOut
+
+
+class WordSuggestions(BaseModel):
+    words: list[SuggestedWord] = Field(max_length=15)
+
+    def is_complete(self) -> bool:
+        return len(self.words) >= 3

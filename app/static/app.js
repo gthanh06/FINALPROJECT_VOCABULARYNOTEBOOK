@@ -8,6 +8,7 @@
 //   #/notebook    my own notebook (Vietnamese UI)
 //   #/notebook/new  add a word to it          #/notebook/edit/{id}  edit one of my words
 //   #/notebook/sentence  write a sentence with one of my words, the AI grades it (?word={id})
+//   #/notebook/suggest   AI suggests new words by topic + level, tick them to add (?topic={id})
 //   #/review      typed review by topic or random, English <-> Vietnamese; logs results
 //   #/quiz        server-graded quiz from the private notebook
 //   #/srs         spaced repetition for words due today
@@ -731,6 +732,169 @@ function setupAiFill(root, form, status, submit) {
   // Fields the user changes after the AI filled them lose the highlight.
   form.addEventListener("input", (e) => e.target.classList.remove("ai-filled"));
   return { filled: () => filled };
+}
+
+// ---------- Gợi ý từ theo chủ đề + trình độ ----------
+// POST /api/ai/suggest-words returns new words (not in my notebook yet); the ones the learner
+// ticks are saved with the normal POST /api/notebook/words.
+const LEVELS = {
+  A1: "A1 — mới bắt đầu", A2: "A2 — sơ cấp", B1: "B1 — trung cấp",
+  B2: "B2 — trên trung cấp", C1: "C1 — nâng cao",
+};
+
+async function suggestPage(params) {
+  const root = mount("tpl-suggest");
+  const body = $(root, "data-suggest-body");
+  const form = $(root, "data-form");
+  const panel = $(root, "data-ai-panel");
+  const hint = $(root, "data-ai-hint");
+  const submit = $(root, "data-submit");
+  const list = $(root, "data-suggestions");
+  const actions = $(root, "data-suggest-actions");
+  const addBtn = $(root, "data-add");
+  const moreBtn = $(root, "data-more");
+
+  let status;
+  try {
+    [, status] = await Promise.all([loadTopics(), api("/ai/status").catch(() => null)]);
+  } catch (err) {
+    return showError(body, err);
+  }
+  topicOptions(form.topic_id);
+  form.topic_id.value = params.get("topic") || pref("suggest-topic", String(topicsCache[0]?.id ?? ""));
+  if (!form.topic_id.value) form.topic_id.selectedIndex = 0;
+  form.level.replaceChildren(...Object.entries(LEVELS).map(([v, t]) => el("option", { value: v, textContent: t })));
+  form.level.value = pref("suggest-level", "B1");
+
+  const quota = el("span");
+  function showQuota(s) {
+    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt AI.`;
+  }
+  const aiOn = Boolean(status?.enabled);
+  if (aiOn) {
+    hint.append(quota);
+    showQuota(status);
+  } else {
+    submit.disabled = true;
+    submit.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
+    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa gợi ý được.";
+  }
+
+  let shown = [];   // every word shown for the current topic + level ("Gợi ý thêm" skips them)
+  let topicId = null;
+
+  function show(kind, ...children) {
+    panel.className = `ai-panel ${kind}`;
+    panel.replaceChildren(...children);
+    panel.hidden = false;
+  }
+  function selected() {
+    return [...list.querySelectorAll("input[type=checkbox]:checked:not(:disabled)")];
+  }
+  function updateAdd() {
+    const n = selected().length;
+    addBtn.disabled = n === 0;
+    addBtn.textContent = n ? `+ Thêm ${n} từ vào sổ` : "Chọn từ để thêm vào sổ";
+  }
+
+  function item(w) {
+    const box = el("input", { type: "checkbox" });
+    box.word = w;
+    box.addEventListener("change", updateAdd);
+    const sound = iconButton("speak", "Nghe phát âm");
+    sound.addEventListener("click", (e) => { e.preventDefault(); speak(w.word); });
+    const head = el("div", { className: "word-head nb" },
+      el("span", { className: "w", textContent: w.word, lang: "en" }));
+    if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
+    head.append(posBadge(w.part_of_speech), sound);
+    const text = el("div", { className: "suggest-text" }, head,
+      el("div", { className: "meaning", textContent: w.meaning_vi }));
+    if (w.definition_en) text.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
+    text.append(el("ul", { className: "examples" }, el("li", {},
+      el("span", { className: "ex", textContent: w.example.en, lang: "en" }),
+      el("span", { className: "ex-vi", textContent: w.example.vi }))));
+    return el("li", { className: "card word-item suggest-item" }, el("label", {}, box, text));
+  }
+
+  async function run(more) {
+    if (!aiOn) return;
+    if (!more) {
+      shown = [];
+      list.replaceChildren();
+      actions.hidden = true;
+    }
+    topicId = Number(form.topic_id.value);
+    savePref("suggest-topic", form.topic_id.value);
+    savePref("suggest-level", form.level.value);
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    cancel.addEventListener("click", () => controller.abort());
+    show("", el("span", { className: "spinner", ariaHidden: "true" }),
+      el("span", { className: "grow", textContent: "AI đang chọn từ… thường mất vài giây." }), cancel);
+    submit.disabled = moreBtn.disabled = true;
+    try {
+      const res = await api("/ai/suggest-words", {
+        method: "POST",
+        body: JSON.stringify({ topic_id: topicId, level: form.level.value, exclude: shown }),
+        signal: controller.signal,
+      });
+      shown.push(...res.words.map((w) => w.word));
+      list.append(...res.words.map(item));
+      if (!res.words.length) {
+        show("warn", el("span", { className: "grow", textContent: "AI chưa tìm thêm được từ mới cho chủ đề này. Thử trình độ khác nhé." }));
+      } else {
+        panel.hidden = true;
+      }
+      actions.hidden = !list.children.length;
+      updateAdd();
+    } catch (err) {
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
+      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      again.addEventListener("click", () => run(more));
+      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      show("error", el("span", { className: "grow", textContent: message }), again);
+    } finally {
+      clearTimeout(timer);
+      submit.disabled = !aiOn;
+      moreBtn.disabled = false;
+      api("/ai/status").then(showQuota).catch(() => {}); // the count may have changed
+    }
+  }
+
+  form.addEventListener("submit", (e) => { e.preventDefault(); run(false); });
+  moreBtn.addEventListener("click", () => run(true));
+
+  addBtn.addEventListener("click", async () => {
+    const boxes = selected();
+    addBtn.disabled = true;
+    let added = 0;
+    const failed = [];
+    for (const box of boxes) {
+      const w = box.word;
+      try {
+        await api("/notebook/words", {
+          method: "POST",
+          body: JSON.stringify({
+            word: w.word, meaning_vi: w.meaning_vi, ipa: w.ipa || null,
+            part_of_speech: w.part_of_speech, definition_en: w.definition_en || null,
+            examples: [w.example], topic_id: topicId, source: "ai",
+          }),
+        });
+        added++;
+      } catch (err) {
+        failed.push(`${w.word}: ${err.message}`);
+        continue;
+      }
+      box.checked = true;
+      box.disabled = true;
+      box.closest("li").classList.add("added");
+    }
+    if (added) toast(`Đã thêm ${added} từ vào sổ`);
+    if (failed.length) show("error", el("span", { className: "grow", textContent: failed.join(" · ") }));
+    updateAdd();
+  });
 }
 
 // ---------- Đặt câu (AI chấm câu tự đặt) ----------
@@ -1699,6 +1863,7 @@ async function route() {
   else if (path === "/notebook") { page = "notebook"; notebookPage(params); }
   else if (path === "/notebook/new") { page = "notebook"; notebookFormPage(null); }
   else if (path === "/notebook/sentence") { page = "notebook"; sentencePage(params); }
+  else if (path === "/notebook/suggest") { page = "notebook"; suggestPage(params); }
   else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
   else if (path === "/quiz") { page = "quiz"; quizPage(); }

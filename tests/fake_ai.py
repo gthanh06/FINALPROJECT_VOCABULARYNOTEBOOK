@@ -67,3 +67,15 @@ def sentence_answer(verdict="incorrect", **changes) -> dict:
         "feedback_vi": "Ý hay! Chỉ cần thêm động từ to be." if wrong else "Câu rất tốt!",
         **changes,
     }
+
+
+def suggest_answer(*words: str) -> dict:
+    """A valid answer to prompts/suggest_words.md with these words."""
+    return {"words": [{
+        "word": w,
+        "part_of_speech": "noun",
+        "ipa": "/x/",
+        "meaning_vi": f"nghĩa của {w}",
+        "definition_en": f"definition of {w}",
+        "example": {"en": f"I like the {w} a lot.", "vi": f"Tôi rất thích {w}."},
+    } for w in words]}

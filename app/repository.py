@@ -359,7 +359,7 @@ class AIRepository:
         ).fetchone()["n"]
 
     def topics(self) -> list[dict]:
-        return self.conn.execute("SELECT id, slug FROM topics ORDER BY position").fetchall()
+        return self.conn.execute("SELECT id, slug, name FROM topics ORDER BY position").fetchall()
 
     def lock_usage(self, user_id: int) -> None:
         # One user's AI requests take turns for the limit check (until commit / rollback).
