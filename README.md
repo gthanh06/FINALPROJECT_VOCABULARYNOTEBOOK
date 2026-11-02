@@ -64,7 +64,7 @@ Test không cần database (dùng repository giả trong `tests/fake_repo.py`).
 - Pull request chạy Ruff, pytest, Docker build và Gitleaks trên toàn bộ lịch sử Git (`fetch-depth: 0`). Không merge nếu một job thất bại.
 - Sau khi các job trên thành công khi push/merge vào `main`, GitHub Actions gọi Render Deploy Hook nếu repository có secret `RENDER_DEPLOY_HOOK_URL` (Settings → Secrets and variables → Actions; URL lấy ở Render → service → Settings → Deploy Hook). Chưa có secret thì bước deploy được bỏ qua và Render vẫn tự deploy (`autoDeploy: true`). Chỉ đổi `autoDeploy: false` trong `render.yaml` **sau khi** đã thêm secret, để không deploy hai lần.
 - Bật branch protection cho `main` trong GitHub → Settings → Branches → Add branch protection rule: yêu cầu pull request, ít nhất 1 approval, và các status check `Scan Git history` cùng `Lint, test, and build`; chặn force-push và xoá nhánh. Các quy tắc này cần được bật trong cài đặt GitHub của repository.
-- Tạo `.env` từ [.env.example](.env.example) khi chạy local. `GEMINI_API_KEY` chỉ nằm ở server. Toàn bộ phần AI nằm trong `app/ai/` (endpoint `/api/ai/...`): yêu cầu đăng nhập, giới hạn lượt mỗi người, cache kết quả, thử lại khi gặp lỗi 429.
+- Tạo `.env` từ [.env.example](.env.example) khi chạy local. `GEMINI_API_KEY` chỉ nằm ở server. Toàn bộ phần AI nằm trong `app/ai/`, prompt trong `prompts/`. Endpoint: `POST /api/ai/lookup` (nút **✨ AI điền** khi thêm từ) và `POST /api/ai/check-sentence` (trang **Sổ của tôi → ✍️ Đặt câu**: AI chấm câu tự đặt với một từ trong sổ, giải thích lỗi bằng tiếng Việt, đưa câu đã sửa). Mọi endpoint AI yêu cầu đăng nhập, giới hạn lượt mỗi người, cache kết quả, thử lại khi gặp lỗi 429.
 
 ## Deploy lên Render
 

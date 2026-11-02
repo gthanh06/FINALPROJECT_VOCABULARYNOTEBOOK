@@ -7,6 +7,7 @@
 //   #/admin/new   admins only: add a word     #/admin/edit/{id}   edit a word
 //   #/notebook    my own notebook (Vietnamese UI)
 //   #/notebook/new  add a word to it          #/notebook/edit/{id}  edit one of my words
+//   #/notebook/sentence  write a sentence with one of my words, the AI grades it (?word={id})
 //   #/review      typed review by topic or random, English <-> Vietnamese; logs results
 // Everything goes through the JSON API under /api (app/auth.py, app/routes.py).
 // The session is an HttpOnly cookie the browser sends by itself; this file never sees it.
@@ -94,9 +95,10 @@ const ICONS = {
   trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
   save: '<path d="M6 3h12v18l-6-4-6 4z"/><path d="M12 7v6M9 10h6"/>',
   saved: '<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>',
+  write: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 20h6"/>',
 };
 function iconButton(icon, label, extraClass = "") {
-  const tag = icon === "edit" ? "a" : "button";
+  const tag = icon === "edit" || icon === "write" ? "a" : "button";
   const btn = el(tag, { className: `icon-btn ${extraClass}`, title: label });
   btn.setAttribute("aria-label", label);
   btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>`;
@@ -522,6 +524,8 @@ function notebookItem(w, onDeleted) {
   const li = el("li", { className: "card word-item", lang: "vi" });
   const sound = iconButton("speak", "Nghe phát âm");
   sound.addEventListener("click", () => speak(w.word));
+  const write = iconButton("write", "Đặt câu với từ này");
+  write.href = `#/notebook/sentence?word=${w.id}`;
   const edit = iconButton("edit", "Sửa");
   edit.href = `#/notebook/edit/${w.id}`;
   const del = iconButton("trash", "Xoá khỏi sổ", "danger");
@@ -539,7 +543,7 @@ function notebookItem(w, onDeleted) {
   const head = el("div", { className: "word-head nb" },
     el("span", { className: "w", textContent: w.word, lang: "en" }));
   if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
-  head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, edit, del));
+  head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, write, edit, del));
   li.append(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
   if (w.definition_en) li.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
   if (w.examples.length) {
@@ -725,6 +729,178 @@ function setupAiFill(root, form, status, submit) {
   // Fields the user changes after the AI filled them lose the highlight.
   form.addEventListener("input", (e) => e.target.classList.remove("ai-filled"));
   return { filled: () => filled };
+}
+
+// ---------- Đặt câu (AI chấm câu tự đặt) ----------
+// POST /api/ai/check-sentence {word_id, sentence}: the server looks the word up in my notebook.
+const SENTENCE_VERDICTS = {
+  correct: { icon: "✅", label: "Câu đúng" },
+  minor_issues: { icon: "🟡", label: "Gần đúng, còn lỗi nhỏ" },
+  incorrect: { icon: "❌", label: "Câu chưa đúng" },
+};
+const ERROR_TYPES = {
+  grammar: "Ngữ pháp", word_usage: "Cách dùng từ", spelling: "Chính tả",
+  word_choice: "Chọn từ", punctuation: "Dấu câu", missing_word: "Thiếu từ",
+};
+
+async function sentencePage(params) {
+  const root = mount("tpl-sentence");
+  const body = $(root, "data-sentence-body");
+  const form = $(root, "data-form");
+  const select = $(root, "data-word-select");
+  const card = $(root, "data-word-card");
+  const panel = $(root, "data-ai-panel");
+  const hint = $(root, "data-ai-hint");
+  const submit = $(root, "data-submit");
+  const result = $(root, "data-result");
+
+  let words, status;
+  try {
+    [words, status] = await Promise.all([api("/notebook/words"), api("/ai/status").catch(() => null)]);
+  } catch (err) {
+    return showError(body, err);
+  }
+  if (!words.length) {
+    return body.replaceChildren(el("p", { className: "card empty" }, "Sổ của bạn chưa có từ nào. ",
+      el("a", { href: "#/notebook/new", textContent: "Thêm từ" }), " rồi quay lại đặt câu nhé."));
+  }
+
+  const sorted = [...words].sort((a, b) => a.word.localeCompare(b.word));
+  select.replaceChildren(...sorted.map((w) =>
+    el("option", { value: w.id, textContent: `${w.word} — ${w.meaning_vi}` })));
+  const wanted = words.find((w) => String(w.id) === params.get("word"));
+  select.value = String((wanted || words[0]).id);
+
+  const quota = el("span");
+  function showQuota(s) {
+    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt AI (câu đã chấm rồi thì không tính).`;
+  }
+  const aiOn = Boolean(status?.enabled);
+  if (aiOn) {
+    hint.append(quota);
+    showQuota(status);
+  } else {
+    submit.disabled = true;
+    submit.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
+    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa chấm câu được.";
+  }
+
+  const current = () => words.find((w) => String(w.id) === select.value);
+  function showWord() {
+    const w = current();
+    const sound = iconButton("speak", "Nghe phát âm");
+    sound.addEventListener("click", () => speak(w.word));
+    const head = el("div", { className: "word-head nb" }, el("span", { className: "w", textContent: w.word, lang: "en" }));
+    if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
+    head.append(posBadge(w.part_of_speech), sound);
+    card.replaceChildren(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
+    if (w.examples[0]) card.append(el("p", { className: "ex", textContent: `vd: ${w.examples[0].en}`, lang: "en" }));
+    form.sentence.placeholder = `Viết một câu tiếng Anh có từ "${w.word}"…`;
+    history.replaceState(null, "", `#/notebook/sentence?word=${w.id}`);
+  }
+  function reset() {
+    result.hidden = panel.hidden = true;
+    form.sentence.value = "";
+    form.sentence.focus();
+  }
+
+  select.addEventListener("change", () => { showWord(); reset(); });
+  $(root, "data-random").addEventListener("click", () => {
+    const others = words.filter((w) => String(w.id) !== select.value);
+    if (!others.length) return;
+    select.value = String(others[Math.floor(Math.random() * others.length)].id);
+    showWord();
+    reset();
+  });
+  form.sentence.addEventListener("keydown", (e) => {
+    if (e.key === "Enter" && (e.ctrlKey || e.metaKey)) { e.preventDefault(); form.requestSubmit(); }
+  });
+
+  function show(kind, ...children) {
+    panel.className = `ai-panel ${kind}`;
+    panel.replaceChildren(...children);
+    panel.hidden = false;
+  }
+
+  function line(label, text) {
+    const sound = iconButton("speak", "Nghe câu này");
+    sound.addEventListener("click", () => speak(text));
+    return el("div", { className: "sentence-line" },
+      el("span", { className: "chips-label", textContent: label }),
+      el("span", { className: "ex", textContent: text, lang: "en" }), sound);
+  }
+
+  function renderResult(r, cached) {
+    const v = SENTENCE_VERDICTS[r.verdict];
+    const nodes = [
+      el("p", { className: `verdict ${r.verdict}`, textContent: `${v.icon} ${v.label}` }),
+      el("p", { className: "sentence-feedback", textContent: r.feedback_vi }),
+    ];
+    if (!r.uses_word) {
+      nodes.push(el("p", { className: "ai-panel warn",
+        textContent: `Câu của bạn chưa dùng từ "${current().word}". Hãy viết lại câu có từ này.` }));
+    }
+    if (r.errors.length) {
+      nodes.push(el("ul", { className: "sentence-errors" }, ...r.errors.map((e) => el("li", {},
+        el("div", {},
+          el("span", { className: "chip", textContent: ERROR_TYPES[e.type] || e.type }),
+          e.excerpt ? el("q", { className: "excerpt", textContent: e.excerpt, lang: "en" }) : ""),
+        el("span", { textContent: e.explanation_vi })))));
+    }
+    if (r.verdict !== "correct") nodes.push(line("Câu đã sửa", r.corrected));
+    if (r.better_version) nodes.push(line("Cách nói hay hơn", r.better_version));
+    const again = el("button", { type: "button", className: "btn", textContent: "Viết câu khác" });
+    again.addEventListener("click", reset);
+    nodes.push(el("div", { className: "row end" },
+      cached ? el("span", { className: "muted small", textContent: "Kết quả lấy từ bộ nhớ, không tốn lượt." }) : "",
+      again));
+    result.replaceChildren(...nodes);
+    result.hidden = false;
+    result.scrollIntoView({ behavior: "smooth", block: "nearest" });
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!aiOn) return;
+    const sentence = form.sentence.value.trim();
+    if (sentence.length < 3) {
+      form.sentence.focus();
+      return show("warn", el("span", { className: "grow", textContent: "Hãy viết một câu tiếng Anh." }));
+    }
+    const controller = new AbortController();
+    let timedOut = false;
+    const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    cancel.addEventListener("click", () => controller.abort());
+    show("", el("span", { className: "spinner", ariaHidden: "true" }),
+      el("span", { className: "grow", textContent: "AI đang chấm câu… thường mất vài giây." }), cancel);
+    result.hidden = true;
+    submit.disabled = select.disabled = true;
+    form.setAttribute("aria-busy", "true");
+    try {
+      const res = await api("/ai/check-sentence", {
+        method: "POST",
+        body: JSON.stringify({ word_id: Number(select.value), sentence }),
+        signal: controller.signal,
+      });
+      panel.hidden = true;
+      renderResult(res.result, res.cached);
+    } catch (err) {
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
+      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      again.addEventListener("click", () => form.requestSubmit());
+      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      show("error", el("span", { className: "grow", textContent: message }), again);
+    } finally {
+      clearTimeout(timer);
+      submit.disabled = select.disabled = false;
+      form.removeAttribute("aria-busy");
+      api("/ai/status").then(showQuota).catch(() => {}); // the count may have changed
+    }
+  });
+
+  showWord();
+  form.sentence.focus();
 }
 
 // The form <-> the JSON of one notebook word. Lists are typed comma-separated.
@@ -1322,6 +1498,7 @@ async function route() {
   else if (edit) { page = "admin"; formPage(Number(edit[1])); }
   else if (path === "/notebook") { page = "notebook"; notebookPage(params); }
   else if (path === "/notebook/new") { page = "notebook"; notebookFormPage(null); }
+  else if (path === "/notebook/sentence") { page = "notebook"; sentencePage(params); }
   else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
   else if (path === "/review") { page = "review"; reviewPage(params.get("topic")); }

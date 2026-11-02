@@ -43,3 +43,29 @@ class WordLookup(BaseModel):
         if not self.is_english_word:
             return True
         return bool(self.word.strip() and self.meaning_vi.strip() and self.examples)
+
+
+ErrorType = Literal[
+    "grammar", "word_usage", "spelling", "word_choice", "punctuation", "missing_word",
+]
+
+
+class SentenceError(BaseModel):
+    type: ErrorType
+    excerpt: str = Field(max_length=300, description="The wrong part, copied from the sentence.")
+    explanation_vi: str = Field(min_length=3, max_length=500, description="In Vietnamese.")
+
+
+class SentenceCheck(BaseModel):
+    uses_word: bool = Field(description="The sentence contains the word or an inflected form.")
+    verdict: Literal["correct", "minor_issues", "incorrect"]
+    errors: list[SentenceError] = Field(max_length=5)
+    corrected: str = Field(min_length=1, max_length=400, description="Minimal fixes only.")
+    better_version: str | None = Field(default=None, max_length=400)
+    feedback_vi: str = Field(min_length=3, max_length=600, description="Short, in Vietnamese.")
+
+    def is_complete(self) -> bool:
+        """A sentence that is not "correct" must say what is wrong."""
+        if self.verdict != "correct" and not self.errors and self.uses_word:
+            return False
+        return bool(self.corrected.strip() and self.feedback_vi.strip())

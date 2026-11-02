@@ -3,9 +3,12 @@
 #
 # GET  /api/ai/status   is AI on, which model, my limits and usage today
 # POST /api/ai/lookup   {"word": "resilient"} -> meaning, IPA, examples... to review before saving
+# POST /api/ai/check-sentence  {"word_id": 3, "sentence": "..."} -> verdict, errors explained
+#                       in Vietnamese, corrected sentence (word_id is one of my notebook words)
 #
 # Every route needs a logged-in user. Calls that reach the AI count towards the
 # user's limits (app/ratelimit.py); cached answers do not.
+import hashlib
 import re
 from typing import Annotated, TypeVar
 
@@ -15,9 +18,10 @@ from pydantic import BaseModel, Field, ValidationError
 
 from app import ratelimit
 from app.ai.errors import AIError, AINotConfigured
-from app.ai.schemas import WordLookup
+from app.ai.schemas import SentenceCheck, WordLookup
 from app.ai.service import AIService, get_ai
 from app.auth import CurrentUser, get_conn
+from app.notebook import Notebook
 from app.repository import AIRepository
 
 router = APIRouter(prefix="/api/ai")
@@ -124,3 +128,51 @@ def lookup(body: LookupIn, ai: AI, repo: AIRepo, user: CurrentUser):
     if result.is_english_word:
         repo.cache_put("lookup", word, version, ai.model, result.model_dump())
     return {"result": result, "cached": False, "topic_id": topic_ids.get(result.topic)}
+
+
+# ---------- Kiểm tra câu tự đặt ----------
+class SentenceIn(BaseModel):
+    word_id: int  # one of my notebook words
+    sentence: str = Field(min_length=3, max_length=300)
+
+
+class SentenceOut(BaseModel):
+    result: SentenceCheck
+    cached: bool
+
+
+def sentence_key(word: dict, sentence: str) -> str:
+    # The verdict depends on the word, the meaning studied and the exact sentence.
+    raw = "\n".join([word["word"].lower(), word.get("part_of_speech") or "", word["meaning_vi"],
+                     sentence])
+    return hashlib.sha256(raw.encode()).hexdigest()
+
+
+@router.post("/check-sentence", response_model=SentenceOut)
+def check_sentence(
+    body: SentenceIn, ai: AI, repo: AIRepo, notebook: Notebook, user: CurrentUser
+):
+    word = notebook.get_word(body.word_id)
+    if word is None:
+        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+    sentence = " ".join(body.sentence.split())
+    if len(sentence) < 3:
+        raise HTTPException(status_code=422, detail="Hãy viết một câu tiếng Anh.")
+    key = sentence_key(word, sentence)
+    version = ai.prompt_version("check_sentence")
+
+    result = cached_answer(repo, "sentence", key, version, SentenceCheck)
+    if result is not None:
+        return {"result": result, "cached": True}
+
+    try:
+        with ratelimit.counted(repo, user["id"], "check_sentence"):
+            result = ai.run(
+                "check_sentence", SentenceCheck,
+                word=word["word"], part_of_speech=word.get("part_of_speech") or "any",
+                meaning_vi=word["meaning_vi"], sentence=sentence,
+            )
+    except AIError as err:
+        raise ai_http_error(err) from None
+    repo.cache_put("sentence", key, version, ai.model, result.model_dump())
+    return {"result": result, "cached": False}

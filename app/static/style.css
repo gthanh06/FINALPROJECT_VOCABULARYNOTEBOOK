@@ -132,7 +132,7 @@ textarea { resize: vertical; }
 /* ---------- List page ---------- */
 .hero { display: flex; justify-content: space-between; align-items: flex-end; gap: 16px; flex-wrap: wrap; margin-bottom: 20px; }
 .hero p { margin: 0; }
-.hero-actions { display: flex; gap: 8px; }
+.hero-actions { display: flex; flex-wrap: wrap; gap: 8px; }
 
 .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 20px; }
 .stat { padding: 14px 16px; }
@@ -244,6 +244,33 @@ textarea { resize: vertical; }
 @keyframes spin { to { transform: rotate(360deg); } }
 @media (prefers-reduced-motion: reduce) { .spinner { animation-duration: 2.4s; } }
 .ai-filled { box-shadow: 0 0 0 2px color-mix(in srgb, var(--primary) 35%, transparent); }
+
+/* ---------- Đặt câu ---------- */
+.sentence-pick { align-items: flex-end; flex-wrap: nowrap; }
+.sentence-pick .grow { flex: 1; min-width: 0; }
+.sentence-word { display: grid; gap: 4px; padding: 12px 14px; border-radius: 12px; background: var(--surface-2); }
+.sentence-word .w { font-weight: 700; font-size: 1.15rem; }
+.sentence-word .ipa { color: var(--muted); font-size: 0.9rem; }
+.sentence-word .ex { margin: 0; color: var(--muted); font-style: italic; font-size: 0.9rem; }
+.sentence-result { display: grid; gap: 12px; margin-top: 16px; padding: 20px 24px; }
+.sentence-result p { margin: 0; }
+.verdict { font-weight: 700; font-size: 1.1rem; }
+.verdict.correct { color: var(--success); }
+.verdict.minor_issues { color: var(--warning); }
+.verdict.incorrect { color: var(--danger); }
+.sentence-feedback { font-size: 0.95rem; }
+.sentence-errors { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; }
+.sentence-errors li { display: grid; gap: 4px; padding-left: 10px; border-left: 3px solid var(--border); }
+.sentence-errors li div { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px; }
+.sentence-errors .excerpt { font-style: italic; text-decoration: underline wavy var(--danger); text-underline-offset: 3px; }
+.sentence-line { display: flex; align-items: center; flex-wrap: wrap; gap: 6px 8px; padding: 10px 12px; border-radius: 10px; background: var(--primary-soft); }
+.sentence-line .chips-label { flex-basis: 100%; }
+.sentence-line .ex { flex: 1; min-width: 0; overflow-wrap: anywhere; font-style: italic; }
+@media (max-width: 520px) {
+  .sentence-pick { flex-wrap: wrap; }
+  .sentence-pick .btn { width: 100%; }
+  .sentence-result { padding: 16px; }
+}
 
 /* ---------- Review page ---------- */
 .deck-size { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 0.9rem; }
