@@ -142,7 +142,7 @@ def lookup(body: LookupIn, ai: AI, repo: AIRepo, user: CurrentUser):
     return {"result": result, "cached": False, "topic_id": topic_ids.get(result.topic)}
 
 
-# ---------- Kiểm tra câu tự đặt ----------
+# ---------- Check a learner sentence ----------
 class SentenceIn(BaseModel):
     word_id: int  # one of my notebook words
     sentence: str = Field(min_length=3, max_length=300)
@@ -205,14 +205,14 @@ def check_sentence(
     return {"result": result, "cached": False}
 
 
-# ---------- Gợi ý từ theo chủ đề + trình độ ----------
+# ---------- Suggest words by topic + level ----------
 SUGGEST_COUNT = 10
 
 
 class SuggestIn(BaseModel):
     topic_id: int
     level: Literal["A1", "A2", "B1", "B2", "C1"]
-    # Words already shown on the page ("Gợi ý thêm" must not repeat them).
+    # Words already shown on the page ("Suggest more" must not repeat them).
     exclude: list[Annotated[str, Field(max_length=60)]] = Field(
         default_factory=list, max_length=100
     )
@@ -270,7 +270,7 @@ def suggest_words(body: SuggestIn, ai: AI, repo: AIRepo, notebook: Notebook, use
     return {"words": words, "topic_id": topic["id"], "cached": False}
 
 
-# ---------- Luyện hội thoại (chatbot dùng từ trong sổ) ----------
+# ---------- Conversation practice (chatbot using notebook words) ----------
 class ChatMessage(BaseModel):
     role: Literal["learner", "tutor"]
     text: str = Field(min_length=1, max_length=500)

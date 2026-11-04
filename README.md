@@ -43,7 +43,7 @@ Giao diện dùng được trên điện thoại (menu cuộn ngang, nút không
 ## AI
 
 - Một lớp AI duy nhất: `AIService` + `GeminiProvider` trong `app/ai/`; đổi nhà cung cấp chỉ sửa một chỗ. Prompt nằm riêng trong `prompts/*.md` (có `version`; đổi prompt thì tăng version để cache cũ được làm lại).
-- Gemini trả JSON theo schema (`app/ai/schemas.py`), server validate lại. JSON sai hoặc thiếu thì hỏi lại 1 lần; lỗi 429 thì thử lại có backoff rồi báo "Hệ thống AI đang bận".
+- Gemini trả JSON theo schema (`app/ai/schemas.py`), server validate lại. JSON sai hoặc thiếu thì hỏi lại 1 lần; lỗi 429 thì thử lại có backoff rồi báo "The AI service is busy. Please try again in a few minutes."
 - Bảo mật: `GEMINI_API_KEY` chỉ nằm ở server; nội dung người dùng gửi (câu, tin nhắn) được đưa vào prompt như dữ liệu, không phải lệnh.
 - Mỗi người bị giới hạn lượt AI (mặc định 5 lượt/phút, 50 lượt/ngày); lỗi AI không bị trừ lượt. Kết quả dùng chung được cache trong bảng `ai_cache`: tra lại từ đã có người tra, chấm lại câu đã chấm thì không tốn lượt.
 

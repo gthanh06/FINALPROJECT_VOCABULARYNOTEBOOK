@@ -113,7 +113,7 @@ function posBadge(pos) {
   return el("span", { className: `badge ${pos || ""}`, textContent: pos || "" });
 }
 
-// ---------- Tài khoản ----------
+// ---------- Account ----------
 function setUser(user) {
   me = user;
   document.querySelector("[data-nav-links]").hidden = !user;
@@ -224,7 +224,7 @@ function authPage(mode) {
   });
 }
 
-// ---------- Chủ đề ----------
+// ---------- Topics ----------
 // The topic list is the same for everyone and rarely changes: fetched once per visit.
 let topicsCache = null;
 async function loadTopics() {
@@ -251,7 +251,7 @@ function topicOptions(select, { allLabel, counts } = {}) {
   select.replaceChildren(...opts);
 }
 
-// ---------- Danh sách ----------
+// ---------- Word list ----------
 async function listPage(params) {
   const root = mount("tpl-list");
   const form = $(root, "data-search");
@@ -412,7 +412,7 @@ function wordItem(w, saved = new Set()) {
       el("span", { className: "w", textContent: w.word }),
       posBadge(w.part_of_speech),
       actions),
-    el("div", { className: "meaning", textContent: w.meaning_vi }),
+    el("div", { className: "meaning", textContent: w.meaning_vi, lang: "vi" }),
   );
   if (w.example) li.append(el("p", { className: "ex", textContent: w.example }));
   if (w.usage_note) li.append(el("p", { className: "note", textContent: w.usage_note }));
@@ -453,7 +453,7 @@ function saveButton(w, saved) {
   return btn;
 }
 
-// ---------- Sổ của tôi ----------
+// ---------- My notebook ----------
 async function notebookPage(params) {
   const root = mount("tpl-notebook");
   const form = $(root, "data-search");
@@ -548,12 +548,12 @@ function notebookItem(w, onDeleted) {
     el("span", { className: "w", textContent: w.word, lang: "en" }));
   if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
   head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, write, edit, del));
-  li.append(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
+  li.append(head, el("div", { className: "meaning", textContent: w.meaning_vi, lang: "vi" }));
   if (w.definition_en) li.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
   if (w.examples.length) {
     li.append(el("ul", { className: "examples" }, ...w.examples.map((ex) => el("li", {},
       el("span", { className: "ex", textContent: ex.en, lang: "en" }),
-      ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi }) : ""))));
+      ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi, lang: "vi" }) : ""))));
   }
   for (const node of [
     chips("Synonyms", w.synonyms),
@@ -627,7 +627,7 @@ async function notebookFormPage(id) {
   });
 }
 
-// ---------- AI điền thông tin từ ----------
+// ---------- Fill a word with AI ----------
 // The browser only calls our own /api/ai/lookup; the Gemini key stays on the server.
 const AI_TIMEOUT_MS = 45000; // the server retries a busy AI a few times before answering
 
@@ -717,7 +717,7 @@ function setupAiFill(root, form, status, submit) {
       form.meaning_vi.focus();
     } catch (err) {
       if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
-      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
+      const message = timedOut ? "The AI took too long to respond. Please try again." : err.message;
       const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => run());
       show("error", el("span", { className: "grow", textContent: message }), again);
@@ -735,7 +735,7 @@ function setupAiFill(root, form, status, submit) {
   return { filled: () => filled };
 }
 
-// ---------- Luyện hội thoại (chatbot dùng từ trong sổ) ----------
+// ---------- Conversation practice (chatbot using notebook words) ----------
 // The conversation lives in this page only; each turn sends it to POST /api/ai/chat.
 const CHAT_WORDS = 6;
 const CHAT_HISTORY = 20; // the server accepts at most 20 messages
@@ -794,7 +794,7 @@ async function chatPage() {
   }
   function tutorBubble(r) {
     const b = bubble("tutor", r.reply);
-    const vi = el("p", { className: "vi", textContent: r.reply_vi, hidden: true });
+    const vi = el("p", { className: "vi", textContent: r.reply_vi, hidden: true, lang: "vi" });
     const toggle = el("button", { type: "button", className: "btn small ghost", textContent: "Translate" });
     toggle.addEventListener("click", () => { vi.hidden = !vi.hidden; toggle.textContent = vi.hidden ? "Translate" : "Hide translation"; });
     const sound = iconButton("speak", "Listen");
@@ -806,7 +806,7 @@ async function chatPage() {
       el("span", { textContent: "✏️ " }),
       el("s", { textContent: c.original, lang: "en" }), " → ",
       el("strong", { textContent: c.corrected, lang: "en" }),
-      el("span", { className: "muted", textContent: ` · ${c.explanation_vi}` })));
+      el("span", { className: "muted", textContent: ` · ${c.explanation_vi}`, lang: "vi" })));
   }
 
   async function turn(learnerBubble) {
@@ -831,7 +831,7 @@ async function chatPage() {
       tutorBubble(r);
     } catch (err) {
       typing.remove();
-      const message = err.name === "AbortError" ? "AI took too long to respond. Please try again." : err.message;
+      const message = err.name === "AbortError" ? "The AI took too long to respond. Please try again." : err.message;
       const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       const box = el("div", { className: "ai-panel error" }, el("span", { className: "grow", textContent: message }), again);
       again.addEventListener("click", () => { box.remove(); turn(learnerBubble); });
@@ -873,7 +873,7 @@ async function chatPage() {
   restart();
 }
 
-// ---------- Gợi ý từ theo chủ đề + trình độ ----------
+// ---------- Suggest words by topic + level ----------
 // POST /api/ai/suggest-words returns new words (not in my notebook yet); the ones the learner
 // ticks are saved with the normal POST /api/notebook/words.
 const LEVELS = {
@@ -919,7 +919,7 @@ async function suggestPage(params) {
     hint.textContent = "AI is not enabled on the server, so suggestions are unavailable.";
   }
 
-  let shown = [];   // every word shown for the current topic + level ("Gợi ý thêm" skips them)
+  let shown = [];   // every word shown for the current topic + level ("Suggest more" skips them)
   let topicId = null;
 
   function show(kind, ...children) {
@@ -947,11 +947,11 @@ async function suggestPage(params) {
     if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
     head.append(posBadge(w.part_of_speech), sound);
     const text = el("div", { className: "suggest-text" }, head,
-      el("div", { className: "meaning", textContent: w.meaning_vi }));
+      el("div", { className: "meaning", textContent: w.meaning_vi, lang: "vi" }));
     if (w.definition_en) text.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
     text.append(el("ul", { className: "examples" }, el("li", {},
       el("span", { className: "ex", textContent: w.example.en, lang: "en" }),
-      el("span", { className: "ex-vi", textContent: w.example.vi }))));
+      el("span", { className: "ex-vi", textContent: w.example.vi, lang: "vi" }))));
     return el("li", { className: "card word-item suggest-item" }, el("label", {}, box, text));
   }
 
@@ -992,7 +992,7 @@ async function suggestPage(params) {
       if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
       const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => run(more));
-      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
+      const message = timedOut ? "The AI took too long to respond. Please try again." : err.message;
       show("error", el("span", { className: "grow", textContent: message }), again);
     } finally {
       clearTimeout(timer);
@@ -1036,7 +1036,7 @@ async function suggestPage(params) {
   });
 }
 
-// ---------- Đặt câu (AI chấm câu tự đặt) ----------
+// ---------- Write a sentence (AI grades it) ----------
 // POST /api/ai/check-sentence {word_id, sentence}: the server looks the word up in my notebook.
 const SENTENCE_VERDICTS = {
   correct: { icon: "✅", label: "Correct sentence" },
@@ -1098,7 +1098,7 @@ async function sentencePage(params) {
     const head = el("div", { className: "word-head nb" }, el("span", { className: "w", textContent: w.word, lang: "en" }));
     if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
     head.append(posBadge(w.part_of_speech), sound);
-    card.replaceChildren(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
+    card.replaceChildren(head, el("div", { className: "meaning", textContent: w.meaning_vi, lang: "vi" }));
     if (w.examples[0]) card.append(el("p", { className: "ex", textContent: `Example: ${w.examples[0].en}`, lang: "en" }));
     form.sentence.placeholder = `Write an English sentence using "${w.word}"…`;
     history.replaceState(null, "", `#/notebook/sentence?word=${w.id}`);
@@ -1150,7 +1150,7 @@ async function sentencePage(params) {
         el("div", {},
           el("span", { className: "chip", textContent: ERROR_TYPES[e.type] || e.type }),
           e.excerpt ? el("q", { className: "excerpt", textContent: e.excerpt, lang: "en" }) : ""),
-        el("span", { textContent: e.explanation_vi })))));
+        el("span", { textContent: e.explanation_vi, lang: "vi" })))));
     }
     if (r.verdict !== "correct") nodes.push(line("Corrected sentence", r.corrected));
     if (r.better_version) nodes.push(line("Better wording", r.better_version));
@@ -1194,7 +1194,7 @@ async function sentencePage(params) {
       if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
       const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => form.requestSubmit());
-      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
+      const message = timedOut ? "The AI took too long to respond. Please try again." : err.message;
       show("error", el("span", { className: "grow", textContent: message }), again);
     } finally {
       clearTimeout(timer);
@@ -1244,7 +1244,7 @@ function readNotebookForm(form) {
   };
 }
 
-// ---------- Thêm / Sửa ----------
+// ---------- Add / Edit ----------
 async function formPage(id) {
   const root = mount("tpl-form");
   const form = $(root, "data-form");
@@ -1298,7 +1298,7 @@ async function formPage(id) {
   });
 }
 
-// ---------- Ôn tập ----------
+// ---------- Practice ----------
 function shuffle(arr) {
   for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -1366,7 +1366,7 @@ async function reviewPage(topicFromUrl) {
   } catch (err) {
     return showError(card, err);
   }
-  // "Ngẫu nhiên" = every word; otherwise only the chosen topic (empty topics are disabled).
+  // "Random" = every word; otherwise only the chosen topic (empty topics are disabled).
   const counts = {};
   for (const w of words) counts[w.topic_id] = (counts[w.topic_id] || 0) + 1;
   topicOptions(topicSelect, { allLabel: `🎲 Random – all topics (${words.length})`, counts });
@@ -1522,7 +1522,7 @@ async function reviewPage(topicFromUrl) {
   });
   $(root, "data-again").addEventListener("click", () => reviewPage(topicSlug));
 
-  // Enter on the "Tiếp tục" button already clicks it; this covers focus elsewhere.
+  // Enter on the "Continue" button already clicks it; this covers focus elsewhere.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter" || card.hidden || !result || e.target.closest("button")) return;
     e.preventDefault();
@@ -1532,7 +1532,7 @@ async function reviewPage(topicFromUrl) {
   render();
 }
 
-// ---------- Quiz từ sổ tay ----------
+// ---------- Notebook quiz ----------
 async function quizPage() {
   const root = mount("tpl-quiz");
   const start = $(root, "data-quiz-start");
@@ -1637,7 +1637,7 @@ async function quizPage() {
   }
 }
 
-// ---------- Ôn cách quãng ----------
+// ---------- Spaced review ----------
 async function srsPage() {
   const root = mount("tpl-srs");
   const card = $(root, "data-srs-card");
@@ -1669,7 +1669,7 @@ async function srsPage() {
       className: "btn primary", type: "button", textContent: "Show meaning",
     });
     const answer = el("div", { className: "srs-answer", hidden: true },
-      el("h3", { textContent: word.meaning_vi }));
+      el("h3", { textContent: word.meaning_vi, lang: "vi" }));
     if (word.definition_en) {
       answer.append(el("p", { className: "muted", textContent: word.definition_en }));
     }
@@ -1730,7 +1730,7 @@ async function srsPage() {
   render();
 }
 
-// ---------- Tiến độ ----------
+// ---------- Progress ----------
 async function progressPage() {
   const root = mount("tpl-progress");
   let p;
