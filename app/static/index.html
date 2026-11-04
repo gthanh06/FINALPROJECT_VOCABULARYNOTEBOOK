@@ -214,7 +214,7 @@
         <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
         <div class="grid-2">
           <label><span>Vietnamese meaning <span class="req">*</span></span>
-            <input name="meaning_vi" required maxlength="300" autocomplete="off" placeholder="vd: kiên cường, mau phục hồi">
+            <input name="meaning_vi" required maxlength="300" autocomplete="off" placeholder="e.g. kiên cường, mau phục hồi">
           </label>
           <label>IPA pronunciation
             <input name="ipa" maxlength="100" autocomplete="off" spellcheck="false" placeholder="vd: /rɪˈzɪliənt/">
@@ -261,7 +261,7 @@
     </section>
   </template>
 
-  <!-- Luyện hội thoại: an English chat with an AI tutor that uses the learner's notebook words -->
+  <!-- Conversation practice: an English chat with an AI tutor that uses the learner's notebook words -->
   <template id="tpl-chat">
     <section class="narrow">
       <a class="back" href="#/notebook">← My notebook</a>
@@ -286,7 +286,7 @@
     </section>
   </template>
 
-  <!-- Gợi ý từ: the AI suggests new words for a topic and a level, the learner ticks some -->
+  <!-- Suggest words: the AI suggests new words for a topic and a level, the learner ticks some -->
   <template id="tpl-suggest">
     <section>
       <a class="back" href="#/notebook">← My notebook</a>
@@ -317,7 +317,7 @@
     </section>
   </template>
 
-  <!-- Đặt câu: the learner writes a sentence with one notebook word, the AI grades it -->
+  <!-- Write a sentence: the learner writes a sentence with one notebook word, the AI grades it -->
   <template id="tpl-sentence">
     <section class="narrow">
       <a class="back" href="#/notebook">← My notebook</a>
@@ -460,7 +460,7 @@
 
   <!-- Quiz generated and graded by the server from the private notebook -->
   <template id="tpl-quiz">
-    <section class="narrow" lang="vi">
+    <section class="narrow">
       <div class="hero">
         <div>
           <h1>Notebook quiz</h1>
@@ -484,7 +484,7 @@
 
   <!-- Spaced repetition, with scheduling computed and saved by the server -->
   <template id="tpl-srs">
-    <section class="narrow" lang="vi">
+    <section class="narrow">
       <div class="hero">
         <div>
           <h1>Review today</h1>
