@@ -33,15 +33,15 @@ Notebook = Annotated[NotebookRepository, Depends(get_notebook)]
 
 
 def not_found() -> HTTPException:
-    return HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+    return HTTPException(status_code=404, detail="This word was not found in your notebook.")
 
 
 def duplicate_word() -> HTTPException:
-    return HTTPException(status_code=409, detail="Từ này đã có trong sổ của bạn")
+    return HTTPException(status_code=409, detail="This word is already in your notebook.")
 
 
 def unknown_topic() -> HTTPException:
-    return HTTPException(status_code=422, detail="Chủ đề không tồn tại")
+    return HTTPException(status_code=422, detail="This topic does not exist.")
 
 
 def clean(data: dict) -> dict:

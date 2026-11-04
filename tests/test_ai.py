@@ -43,7 +43,7 @@ def test_bad_json_twice_is_a_friendly_error():
     ai, provider = service({"word": "x"}, lookup_answer(examples=[]))
     with pytest.raises(AIBadOutput) as err:
         run_lookup(ai)
-    assert "không đúng định dạng" in err.value.message
+    assert "invalid format" in err.value.message
     assert len(provider.calls) == 2
 
 
@@ -57,7 +57,7 @@ def test_still_rate_limited_after_retries():
     ai, provider = service(RATE_LIMITED, RATE_LIMITED, RATE_LIMITED)
     with pytest.raises(AIBusy) as err:
         run_lookup(ai)
-    assert err.value.message == "Hệ thống AI đang bận, thử lại sau ít phút."
+    assert err.value.message == "The AI service is busy. Please try again in a few minutes."
     assert len(provider.calls) == 3
 
 
@@ -145,7 +145,7 @@ def test_per_minute_limit(learner, ai, monkeypatch):
     assert learner.post("/api/ai/lookup", json={"word": "two"}).status_code == 200
     r = learner.post("/api/ai/lookup", json={"word": "three"})
     assert r.status_code == 429
-    assert "tối đa 2 lần/phút" in r.json()["detail"]
+    assert "maximum 2 per minute" in r.json()["detail"]
     assert r.headers["retry-after"] == "60"
     # Cached words still work while over the limit.
     assert learner.post("/api/ai/lookup", json={"word": "one"}).json()["cached"] is True
@@ -158,14 +158,14 @@ def test_per_day_limit(learner, ai, monkeypatch):
     learner.post("/api/ai/lookup", json={"word": "one"})
     r = learner.post("/api/ai/lookup", json={"word": "two"})
     assert r.status_code == 429
-    assert "hết 1 lượt AI hôm nay" in r.json()["detail"]
+    assert "used all 1 AI requests for today" in r.json()["detail"]
 
 
 def test_ai_busy_is_a_503_with_the_friendly_message(learner, ai):
     ai.queue(RATE_LIMITED, RATE_LIMITED, RATE_LIMITED)
     r = learner.post("/api/ai/lookup", json={"word": "resilient"})
     assert r.status_code == 503
-    assert r.json()["detail"] == "Hệ thống AI đang bận, thử lại sau ít phút."
+    assert r.json()["detail"] == "The AI service is busy. Please try again in a few minutes."
 
 
 def test_failed_ai_calls_are_given_back(learner, ai, repo):

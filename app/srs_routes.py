@@ -22,7 +22,7 @@ def today(notebook: Notebook):
 def review_word(word_id: int, body: SrsReviewIn, notebook: Notebook):
     result = notebook.review_srs(word_id, body.quality, vietnam_today())
     if result is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+        raise HTTPException(status_code=404, detail="This word was not found in your notebook.")
     return result
 
 
@@ -30,7 +30,7 @@ def review_word(word_id: int, body: SrsReviewIn, notebook: Notebook):
 def review_history(word_id: int, notebook: Notebook):
     reviews = notebook.list_reviews_srs(word_id)
     if reviews is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+        raise HTTPException(status_code=404, detail="This word was not found in your notebook.")
     return reviews
 
 
@@ -44,7 +44,7 @@ def mnemonic(
 ):
     word = notebook.get_word(word_id)
     if word is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+        raise HTTPException(status_code=404, detail="This word was not found in your notebook.")
     key = f"{normalize_word(word['word'])}|{word['meaning_vi'].strip().casefold()}"
     version = ai.prompt_version("mnemonic")
     result = cached_answer(repo, "mnemonic", key, version, Mnemonic)

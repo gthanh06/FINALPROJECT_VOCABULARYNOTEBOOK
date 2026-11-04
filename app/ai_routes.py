@@ -117,7 +117,9 @@ def lookup(body: LookupIn, ai: AI, repo: AIRepo, user: CurrentUser):
     if not WORD_PATTERN.match(word):
         raise HTTPException(
             status_code=422,
-            detail="Hãy nhập một từ hoặc cụm từ tiếng Anh (chỉ chữ cái, dấu cách, ' và -).",
+            detail=(
+                "Enter an English word or phrase (letters, spaces, apostrophes, and hyphens only)."
+            ),
         )
     topics = repo.topics()
     topic_ids = {t["slug"]: t["id"] for t in topics}
@@ -178,10 +180,10 @@ def check_sentence(
 ):
     word = notebook.get_word(body.word_id)
     if word is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+        raise HTTPException(status_code=404, detail="This word was not found in your notebook.")
     sentence = " ".join(body.sentence.split())
     if len(sentence) < 3:
-        raise HTTPException(status_code=422, detail="Hãy viết một câu tiếng Anh.")
+        raise HTTPException(status_code=422, detail="Write an English sentence.")
     key = sentence_key(word, sentence)
     version = ai.prompt_version("check_sentence")
 
@@ -238,7 +240,7 @@ def new_words(words: list[SuggestedWord], avoid: set[str]) -> list[SuggestedWord
 def suggest_words(body: SuggestIn, ai: AI, repo: AIRepo, notebook: Notebook, user: CurrentUser):
     topic = next((t for t in repo.topics() if t["id"] == body.topic_id), None)
     if topic is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy chủ đề này")
+        raise HTTPException(status_code=404, detail="This topic was not found.")
     mine = {normalize_word(w["word"]) for w in notebook.list_words()}
     shown = {normalize_word(w) for w in body.exclude}
     key = f"{topic['slug']}|{body.level}"
@@ -293,11 +295,11 @@ def transcript(messages: list[ChatMessage]) -> str:
 @router.post("/chat", response_model=ChatOut)
 def chat(body: ChatIn, ai: AI, repo: AIRepo, notebook: Notebook, user: CurrentUser):
     if body.messages and body.messages[-1].role != "learner":
-        raise HTTPException(status_code=422, detail="Tin nhắn cuối phải là của bạn.")
+        raise HTTPException(status_code=422, detail="The last message must be yours.")
     mine = {w["id"]: w for w in notebook.list_words()}
     words = [mine[i] for i in dict.fromkeys(body.word_ids) if i in mine]
     if len(words) != len(set(body.word_ids)):
-        raise HTTPException(status_code=404, detail="Không tìm thấy từ này trong sổ của bạn")
+        raise HTTPException(status_code=404, detail="This word was not found in your notebook.")
     targets = "\n".join(f"- {w['word']}: {w['meaning_vi']}" for w in words)
     try:
         with ratelimit.counted(repo, user["id"], "chat"):

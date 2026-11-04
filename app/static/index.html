@@ -16,10 +16,10 @@
       </a>
       <nav data-nav-links hidden>
         <a href="#/" data-nav="list">Words</a>
-        <a href="#/notebook" data-nav="notebook">Sổ của tôi</a>
+        <a href="#/notebook" data-nav="notebook">My notebook</a>
         <a href="#/review" data-nav="review">Practice</a>
         <a href="#/quiz" data-nav="quiz">Quiz</a>
-        <a href="#/srs" data-nav="srs">Ôn hôm nay</a>
+        <a href="#/srs" data-nav="srs">Review today</a>
         <a href="#/progress" data-nav="progress">Progress</a>
         <a href="#/admin" data-nav="admin" data-admin-only hidden>Admin</a>
       </nav>
@@ -154,33 +154,33 @@
     </section>
   </template>
 
-  <!-- My notebook: the logged-in user's own words (Vietnamese UI) -->
+  <!-- My notebook: the logged-in user's own words -->
   <template id="tpl-notebook">
-    <section lang="vi">
+    <section>
       <div class="hero">
         <div>
-          <h1>Sổ của tôi</h1>
-          <p class="muted">Từ vựng riêng của bạn: tự thêm từ mới hoặc lưu từ trong kho chung.</p>
+          <h1>My notebook</h1>
+          <p class="muted">Your personal vocabulary: add new words or save words from the shared bank.</p>
         </div>
         <div class="hero-actions">
-          <a class="btn" href="#/">Lấy từ kho chung</a>
-          <a class="btn" href="#/notebook/suggest">✨ Gợi ý từ</a>
-          <a class="btn" href="#/notebook/sentence">✍️ Đặt câu</a>
-          <a class="btn" href="#/notebook/chat">💬 Luyện hội thoại</a>
+          <a class="btn" href="#/">Get from word bank</a>
+          <a class="btn" href="#/notebook/suggest">✨ Suggest words</a>
+          <a class="btn" href="#/notebook/sentence">✍️ Write a sentence</a>
+          <a class="btn" href="#/notebook/chat">💬 Conversation practice</a>
 
-          <a class="btn" href="#/quiz">Quiz sổ tay</a>
-          <a class="btn" href="#/srs">Ôn hôm nay</a>
+          <a class="btn" href="#/quiz">Notebook quiz</a>
+          <a class="btn" href="#/srs">Review today</a>
 
-          <a class="btn primary" href="#/notebook/new">+ Thêm từ</a>
+          <a class="btn primary" href="#/notebook/new">+ Add a word</a>
         </div>
       </div>
       <div class="toolbar">
         <form class="search" data-search role="search">
           <svg class="search-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="11" cy="11" r="7"/><path d="m20 20-3.5-3.5"/></svg>
-          <input type="search" name="q" placeholder="Tìm theo từ hoặc nghĩa..." aria-label="Tìm kiếm" autocomplete="off">
+          <input type="search" name="q" placeholder="Search by word or meaning..." aria-label="Search" autocomplete="off">
         </form>
-        <select data-sort aria-label="Sắp xếp">
-          <option value="new">Mới nhất</option>
+        <select data-sort aria-label="Sort">
+          <option value="new">Newest</option>
           <option value="az">A → Z</option>
           <option value="za">Z → A</option>
         </select>
@@ -188,74 +188,74 @@
       <p class="muted count" data-count></p>
       <ul class="words" data-words></ul>
       <div class="row center">
-        <button class="btn" data-more hidden>Xem thêm</button>
+        <button class="btn" data-more hidden>Show more</button>
       </div>
     </section>
   </template>
 
   <!-- My notebook: add / edit one of my words -->
   <template id="tpl-notebook-form">
-    <section class="narrow" lang="vi">
-      <a class="back" href="#/notebook">← Sổ của tôi</a>
+    <section class="narrow">
+      <a class="back" href="#/notebook">← My notebook</a>
       <h1 data-title></h1>
       <form class="card form" data-form novalidate>
         <div class="grid-2">
           <div class="ai-word">
-            <label><span>Từ tiếng Anh <span class="req">*</span></span>
+            <label><span>English word <span class="req">*</span></span>
               <input name="word" required maxlength="100" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="vd: resilient">
             </label>
-            <button type="button" class="btn ai-btn" data-ai-fill>✨ AI điền</button>
+            <button type="button" class="btn ai-btn" data-ai-fill>✨ Fill with AI</button>
           </div>
-          <label>Loại từ
+          <label>Part of speech
             <select name="part_of_speech" data-pos-select></select>
           </label>
         </div>
-        <p class="muted small hint-line" data-ai-hint>Nhập từ rồi bấm <strong>✨ AI điền</strong>: AI gợi ý nghĩa, phiên âm, ví dụ… để bạn xem lại và sửa trước khi lưu.</p>
+        <p class="muted small hint-line" data-ai-hint>Enter a word and click <strong>✨ Fill with AI</strong>: AI will suggest the meaning, pronunciation, examples, and more for you to review before saving.</p>
         <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
         <div class="grid-2">
-          <label><span>Nghĩa tiếng Việt <span class="req">*</span></span>
+          <label><span>Vietnamese meaning <span class="req">*</span></span>
             <input name="meaning_vi" required maxlength="300" autocomplete="off" placeholder="vd: kiên cường, mau phục hồi">
           </label>
-          <label>Phiên âm IPA
+          <label>IPA pronunciation
             <input name="ipa" maxlength="100" autocomplete="off" spellcheck="false" placeholder="vd: /rɪˈzɪliənt/">
           </label>
         </div>
-        <label>Định nghĩa tiếng Anh
+        <label>English definition
           <textarea name="definition_en" rows="2" maxlength="500" placeholder="vd: able to recover quickly from difficulties"></textarea>
         </label>
         <fieldset class="examples-field">
-          <legend>Câu ví dụ</legend>
+          <legend>Example sentences</legend>
           <div class="example-row">
-            <textarea name="example_en_0" rows="2" maxlength="300" placeholder="Câu tiếng Anh"></textarea>
-            <textarea name="example_vi_0" rows="2" maxlength="300" placeholder="Dịch tiếng Việt"></textarea>
+            <textarea name="example_en_0" rows="2" maxlength="300" placeholder="English sentence"></textarea>
+            <textarea name="example_vi_0" rows="2" maxlength="300" placeholder="Vietnamese translation"></textarea>
           </div>
           <div class="example-row">
-            <textarea name="example_en_1" rows="2" maxlength="300" placeholder="Câu tiếng Anh"></textarea>
-            <textarea name="example_vi_1" rows="2" maxlength="300" placeholder="Dịch tiếng Việt"></textarea>
+            <textarea name="example_en_1" rows="2" maxlength="300" placeholder="English sentence"></textarea>
+            <textarea name="example_vi_1" rows="2" maxlength="300" placeholder="Vietnamese translation"></textarea>
           </div>
         </fieldset>
         <div class="grid-3">
-          <label>Từ đồng nghĩa
+          <label>Synonyms
             <input name="synonyms" autocomplete="off" placeholder="tough, hardy">
           </label>
-          <label>Từ trái nghĩa
+          <label>Antonyms
             <input name="antonyms" autocomplete="off" placeholder="fragile">
           </label>
           <label>Collocations
             <input name="collocations" autocomplete="off" placeholder="remarkably resilient">
           </label>
         </div>
-        <p class="muted small hint-line">Nhiều mục thì cách nhau bằng dấu phẩy.</p>
-        <label>Ghi chú cách dùng
+        <p class="muted small hint-line">Separate multiple items with commas.</p>
+        <label>Usage note
           <textarea name="usage_note" rows="2" maxlength="1000" placeholder="vd: resilient to sth"></textarea>
         </label>
-        <label><span>Chủ đề</span>
+        <label><span>Topic</span>
           <select name="topic_id" data-topic-select></select>
         </label>
         <p class="error" data-error hidden></p>
         <div class="row end">
-          <a class="btn ghost" href="#/notebook">Huỷ</a>
-          <button class="btn primary" type="submit" data-submit>Lưu vào sổ</button>
+          <a class="btn ghost" href="#/notebook">Cancel</a>
+          <button class="btn primary" type="submit" data-submit>Save to notebook</button>
         </div>
       </form>
     </section>
@@ -263,55 +263,55 @@
 
   <!-- Luyện hội thoại: an English chat with an AI tutor that uses the learner's notebook words -->
   <template id="tpl-chat">
-    <section class="narrow" lang="vi">
-      <a class="back" href="#/notebook">← Sổ của tôi</a>
-      <h1>Luyện hội thoại</h1>
-      <p class="muted">Trò chuyện bằng tiếng Anh với AI. AI dùng các từ trong sổ của bạn và gợi ý bạn dùng lại chúng; câu sai sẽ được sửa nhẹ nhàng.</p>
+    <section class="narrow">
+      <a class="back" href="#/notebook">← My notebook</a>
+      <h1>Conversation practice</h1>
+      <p class="muted">Chat in English with an AI tutor using words from your notebook. The tutor will encourage you to reuse them and gently correct mistakes.</p>
       <div data-chat-body>
         <div class="card chat-words">
           <div class="row">
-            <span class="chips-label">Từ cần luyện</span>
-            <button class="btn small" type="button" data-new-words>🔀 Đổi từ</button>
+            <span class="chips-label">Words to practice</span>
+            <button class="btn small" type="button" data-new-words>🔀 Change words</button>
           </div>
           <div class="chips" data-chat-words></div>
           <p class="muted small" data-chat-score></p>
         </div>
         <div class="chat-log" data-chat-log aria-live="polite"></div>
         <form class="chat-form" data-form novalidate>
-          <textarea name="message" rows="2" maxlength="500" lang="en" placeholder="Viết bằng tiếng Anh… (Enter để gửi, Shift + Enter xuống dòng)" aria-label="Tin nhắn"></textarea>
-          <button class="btn primary" type="submit" data-submit>Gửi</button>
+          <textarea name="message" rows="2" maxlength="500" lang="en" placeholder="Write in English… (Enter to send, Shift + Enter for a new line)" aria-label="Message"></textarea>
+          <button class="btn primary" type="submit" data-submit>Send</button>
         </form>
-        <p class="muted small" data-ai-hint>Mỗi tin nhắn tốn 1 lượt AI.</p>
+        <p class="muted small" data-ai-hint>Each message uses 1 AI request.</p>
       </div>
     </section>
   </template>
 
   <!-- Gợi ý từ: the AI suggests new words for a topic and a level, the learner ticks some -->
   <template id="tpl-suggest">
-    <section lang="vi">
-      <a class="back" href="#/notebook">← Sổ của tôi</a>
-      <h1>Gợi ý từ</h1>
-      <p class="muted">Chọn chủ đề và trình độ, AI gợi ý từ mới (bỏ qua những từ đã có trong sổ). Đánh dấu từ muốn học rồi thêm vào sổ.</p>
+    <section>
+      <a class="back" href="#/notebook">← My notebook</a>
+      <h1>Suggest words</h1>
+      <p class="muted">Choose a topic and level. AI will suggest new words, excluding words already in your notebook. Select the words you want to learn and add them.</p>
       <div data-suggest-body>
         <form class="card form suggest-form" data-form novalidate>
           <div class="grid-2">
-            <label>Chủ đề
+            <label>Topic
               <select name="topic_id" data-topic-select></select>
             </label>
-            <label>Trình độ
+            <label>Level
               <select name="level"></select>
             </label>
           </div>
           <p class="muted small hint-line" data-ai-hint></p>
           <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
           <div class="row end">
-            <button class="btn primary" type="submit" data-submit>✨ Gợi ý</button>
+            <button class="btn primary" type="submit" data-submit>✨ Suggest</button>
           </div>
         </form>
         <ul class="words suggest-list" data-suggestions aria-live="polite"></ul>
         <div class="row center suggest-actions" data-suggest-actions hidden>
-          <button class="btn" type="button" data-more>Gợi ý thêm</button>
-          <button class="btn primary" type="button" data-add disabled>Chọn từ để thêm vào sổ</button>
+          <button class="btn" type="button" data-more>Suggest more</button>
+          <button class="btn primary" type="button" data-add disabled>Select words to add</button>
         </div>
       </div>
     </section>
@@ -319,26 +319,26 @@
 
   <!-- Đặt câu: the learner writes a sentence with one notebook word, the AI grades it -->
   <template id="tpl-sentence">
-    <section class="narrow" lang="vi">
-      <a class="back" href="#/notebook">← Sổ của tôi</a>
-      <h1>Đặt câu</h1>
-      <p class="muted">Chọn một từ trong sổ, tự đặt một câu tiếng Anh với từ đó. AI sẽ chấm, giải thích lỗi bằng tiếng Việt và gợi ý câu đã sửa.</p>
+    <section class="narrow">
+      <a class="back" href="#/notebook">← My notebook</a>
+      <h1>Write a sentence</h1>
+      <p class="muted">Choose a word from your notebook and write an English sentence with it. AI will grade it, explain errors in Vietnamese, and suggest a corrected sentence.</p>
       <div data-sentence-body>
         <form class="card form" data-form novalidate>
           <div class="row sentence-pick">
-            <label class="grow">Từ cần luyện
+            <label class="grow">Word to practice
               <select name="word_id" data-word-select></select>
             </label>
-            <button type="button" class="btn" data-random>🎲 Từ ngẫu nhiên</button>
+            <button type="button" class="btn" data-random>🎲 Random word</button>
           </div>
           <div class="sentence-word" data-word-card></div>
-          <label>Câu của bạn
+          <label>Your sentence
             <textarea name="sentence" rows="3" maxlength="300" lang="en" spellcheck="false"></textarea>
           </label>
-          <p class="muted small hint-line" data-ai-hint>Bấm <strong>Chấm câu</strong> hoặc Ctrl + Enter.</p>
+          <p class="muted small hint-line" data-ai-hint>Click <strong>Grade sentence</strong> or press Ctrl + Enter.</p>
           <div class="ai-panel" data-ai-panel role="status" aria-live="polite" hidden></div>
           <div class="row end">
-            <button class="btn primary" type="submit" data-submit>✨ Chấm câu</button>
+            <button class="btn primary" type="submit" data-submit>✨ Grade sentence</button>
           </div>
         </form>
         <div class="card sentence-result" data-result aria-live="polite" hidden></div>
@@ -463,12 +463,12 @@
     <section class="narrow" lang="vi">
       <div class="hero">
         <div>
-          <h1>Quiz sổ tay</h1>
-          <p class="muted">Trắc nghiệm, điền từ còn thiếu và chọn nghĩa đúng. Đáp án chỉ hiện sau khi nộp bài.</p>
+          <h1>Notebook quiz</h1>
+          <p class="muted">Multiple choice, fill-in-the-blank, and meaning questions. Answers are shown after you submit.</p>
         </div>
       </div>
       <form class="card row" data-quiz-start>
-        <label class="deck-size">Số câu
+        <label class="deck-size">Number of questions
           <select data-quiz-count>
             <option value="5">5</option>
             <option value="10" selected>10</option>
@@ -476,7 +476,7 @@
             <option value="30">30</option>
           </select>
         </label>
-        <button class="btn primary" type="submit">Tạo quiz</button>
+        <button class="btn primary" type="submit">Create quiz</button>
       </form>
       <div data-quiz-area></div>
     </section>
@@ -487,8 +487,8 @@
     <section class="narrow" lang="vi">
       <div class="hero">
         <div>
-          <h1>Ôn hôm nay</h1>
-          <p class="muted" data-srs-count>Đang tải từ cần ôn...</p>
+          <h1>Review today</h1>
+          <p class="muted" data-srs-count>Loading words to review...</p>
         </div>
       </div>
       <div data-srs-card></div>

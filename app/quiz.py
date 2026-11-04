@@ -80,7 +80,7 @@ def start_quiz(body: QuizStartIn, notebook: Notebook, quizzes: QuizRepo):
     words = notebook.list_words()
     if len(words) < 3:
         raise HTTPException(
-            status_code=422, detail="Thêm ít nhất 3 từ vào sổ để tạo bài quiz."
+            status_code=422, detail="Add at least 3 words to your notebook to create a quiz."
         )
     random.shuffle(words)
     selected = words[: min(body.count, len(words))]
@@ -104,15 +104,15 @@ def start_quiz(body: QuizStartIn, notebook: Notebook, quizzes: QuizRepo):
 def submit_quiz(quiz_id: int, body: QuizSubmitIn, quizzes: QuizRepo):
     quiz = quizzes.get(quiz_id)
     if quiz is None:
-        raise HTTPException(status_code=404, detail="Không tìm thấy bài quiz")
+        raise HTTPException(status_code=404, detail="Quiz not found.")
     if quiz["submitted_at"] is not None:
-        raise HTTPException(status_code=409, detail="Bài quiz này đã được chấm")
+        raise HTTPException(status_code=409, detail="This quiz has already been graded.")
 
     submitted = {answer.question_id: answer.answer.strip() for answer in body.answers}
     questions = quiz["questions"]
     question_ids = {question["id"] for question in questions}
     if len(submitted) != len(body.answers) or set(submitted) != question_ids:
-        raise HTTPException(status_code=422, detail="Cần trả lời đúng một lần cho mỗi câu hỏi")
+        raise HTTPException(status_code=422, detail="Provide exactly one answer for each question.")
 
     results = []
     for question in questions:
@@ -130,5 +130,5 @@ def submit_quiz(quiz_id: int, body: QuizSubmitIn, quizzes: QuizRepo):
         "questions": results,
     }
     if not quizzes.finish(quiz_id, result):
-        raise HTTPException(status_code=409, detail="Bài quiz này đã được chấm")
+        raise HTTPException(status_code=409, detail="This quiz has already been graded.")
     return result

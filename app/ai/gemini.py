@@ -43,7 +43,9 @@ class GeminiProvider:
         except gx.APITimeoutError as err:
             raise AITimeout from err
         except gx.APIConnectionError as err:
-            raise AIBusy("Không kết nối được tới AI, vui lòng thử lại sau ít phút.") from err
+            raise AIBusy(
+                "Could not connect to the AI service. Please try again in a few minutes."
+            ) from err
         except gx.APIStatusError as err:
             # The detail (it can name the project) goes to the logs, not to the browser.
             print(f"gemini error {err.status_code}: {str(err)[:300]}")

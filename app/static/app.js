@@ -34,7 +34,7 @@ async function api(path, options = {}) {
     });
   } catch (err) {
     if (err.name === "AbortError") throw err;
-    throw new Error("Không kết nối được máy chủ. Kiểm tra mạng rồi thử lại.");
+    throw new Error("Could not connect to the server. Check your connection and try again.");
   }
   if (res.status === 204) return null;
   const body = await res.json().catch(() => ({}));
@@ -429,7 +429,7 @@ function saveButton(w, saved) {
   const isSaved = () => saved.has(w.word.toLowerCase());
   const btn = el("button", { className: "icon-btn save-btn" });
   const paint = () => {
-    const label = isSaved() ? "Đã có trong sổ của tôi" : "Thêm vào sổ của tôi";
+    const label = isSaved() ? "Already in my notebook" : "Add to my notebook";
     btn.title = label;
     btn.setAttribute("aria-label", label);
     btn.classList.toggle("saved", isSaved());
@@ -437,13 +437,13 @@ function saveButton(w, saved) {
   };
   paint();
   btn.addEventListener("click", async () => {
-    if (isSaved()) return toast(`"${w.word}" đã có trong sổ của bạn`);
+    if (isSaved()) return toast(`"${w.word}" is already in your notebook`);
     btn.disabled = true;
     try {
       await api(`/notebook/from-bank/${w.id}`, { method: "POST" });
       saved.add(w.word.toLowerCase());
       paint();
-      toast(`Đã thêm "${w.word}" vào sổ của bạn`);
+      toast(`Added "${w.word}" to your notebook`);
     } catch (err) {
       toast(err.message);
     } finally {
@@ -479,14 +479,14 @@ async function notebookPage(params) {
       !q || w.word.toLowerCase().includes(q) || w.meaning_vi.toLowerCase().includes(q));
     if (state.sort === "az") items.sort((a, b) => a.word.localeCompare(b.word));
     if (state.sort === "za") items.sort((a, b) => b.word.localeCompare(a.word));
-    count.textContent = q ? `${items.length} / ${words.length} từ khớp` : `${words.length} từ trong sổ`;
+    count.textContent = q ? `${items.length} / ${words.length} matching words` : `${words.length} words in your notebook`;
     if (items.length === 0) {
       const empty = el("li", { className: "card empty" });
-      if (words.length) empty.textContent = "Không có từ nào khớp.";
+      if (words.length) empty.textContent = "No matching words.";
       else {
-        empty.append("Sổ của bạn chưa có từ nào. ",
-          el("a", { href: "#/notebook/new", textContent: "Thêm từ đầu tiên" }),
-          " hoặc bấm 🔖 ở một từ trong ", el("a", { href: "#/", textContent: "kho chung" }), ".");
+        empty.append("Your notebook is empty. ",
+          el("a", { href: "#/notebook/new", textContent: "Add your first word" }),
+          " or click 🔖 on a word in the ", el("a", { href: "#/", textContent: "shared bank" }), ".");
       }
       list.replaceChildren(empty);
     } else {
@@ -496,7 +496,7 @@ async function notebookPage(params) {
       })));
     }
     more.hidden = items.length <= state.shown;
-    more.textContent = `Xem thêm (${items.length - state.shown})`;
+    more.textContent = `Show more (${items.length - state.shown})`;
   }
 
   let typing;
@@ -515,7 +515,7 @@ async function notebookPage(params) {
   render();
 }
 
-const SOURCE_LABELS = { bank: "từ kho chung", ai: "AI gợi ý" };
+const SOURCE_LABELS = { bank: "shared bank", ai: "AI suggestion" };
 
 function chips(label, items, className = "") {
   if (!items?.length) return null;
@@ -525,19 +525,19 @@ function chips(label, items, className = "") {
 }
 
 function notebookItem(w, onDeleted) {
-  const li = el("li", { className: "card word-item", lang: "vi" });
-  const sound = iconButton("speak", "Nghe phát âm");
+  const li = el("li", { className: "card word-item" });
+  const sound = iconButton("speak", "Listen");
   sound.addEventListener("click", () => speak(w.word));
-  const write = iconButton("write", "Đặt câu với từ này");
+  const write = iconButton("write", "Write a sentence with this word");
   write.href = `#/notebook/sentence?word=${w.id}`;
-  const edit = iconButton("edit", "Sửa");
+  const edit = iconButton("edit", "Edit");
   edit.href = `#/notebook/edit/${w.id}`;
-  const del = iconButton("trash", "Xoá khỏi sổ", "danger");
+  const del = iconButton("trash", "Remove from notebook", "danger");
   del.addEventListener("click", async () => {
-    if (!confirm(`Xoá "${w.word}" khỏi sổ của bạn?`)) return;
+    if (!confirm(`Remove "${w.word}" from your notebook?`)) return;
     try {
       await api(`/notebook/words/${w.id}`, { method: "DELETE" });
-      toast(`Đã xoá "${w.word}"`);
+      toast(`Removed "${w.word}"`);
       onDeleted();
     } catch (err) {
       toast(err.message);
@@ -556,8 +556,8 @@ function notebookItem(w, onDeleted) {
       ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi }) : ""))));
   }
   for (const node of [
-    chips("Đồng nghĩa", w.synonyms),
-    chips("Trái nghĩa", w.antonyms, "anti"),
+    chips("Synonyms", w.synonyms),
+    chips("Antonyms", w.antonyms, "anti"),
     chips("Collocations", w.collocations),
   ]) if (node) li.append(node);
   if (w.usage_note) li.append(el("p", { className: "note", textContent: w.usage_note }));
@@ -576,7 +576,7 @@ async function notebookFormPage(id) {
   const form = $(root, "data-form");
   const error = $(root, "data-error");
   const submit = $(root, "data-submit");
-  $(root, "data-title").textContent = id ? "Sửa từ" : "Thêm từ vào sổ";
+  $(root, "data-title").textContent = id ? "Edit word" : "Add a word to your notebook";
   let aiStatus = null;
   try {
     [, aiStatus] = await Promise.all([loadTopics(), api("/ai/status").catch(() => null)]);
@@ -585,9 +585,9 @@ async function notebookFormPage(id) {
   }
   const ai = setupAiFill(root, form, aiStatus, submit);
   topicOptions(form.topic_id);
-  form.topic_id.prepend(el("option", { value: "", textContent: "— Chưa phân loại —" }));
+  form.topic_id.prepend(el("option", { value: "", textContent: "— Uncategorized —" }));
   form.topic_id.value = "";
-  form.part_of_speech.replaceChildren(el("option", { value: "", textContent: "— chọn —" }),
+  form.part_of_speech.replaceChildren(el("option", { value: "", textContent: "— Select —" }),
     ...Object.keys(POS_LABELS).map((p) => el("option", { value: p, textContent: p })));
 
   if (id) {
@@ -603,7 +603,7 @@ async function notebookFormPage(id) {
     e.preventDefault();
     error.hidden = true;
     const data = readNotebookForm(form);
-    const problem = !data.word ? "Hãy nhập từ tiếng Anh." : !data.meaning_vi ? "Hãy nhập nghĩa tiếng Việt." : "";
+    const problem = !data.word ? "Please enter an English word." : !data.meaning_vi ? "Please enter the Vietnamese meaning." : "";
     if (problem) {
       error.textContent = problem;
       error.hidden = false;
@@ -616,7 +616,7 @@ async function notebookFormPage(id) {
         method: id ? "PATCH" : "POST",
         body: JSON.stringify(data),
       });
-      toast(id ? "Đã lưu thay đổi" : `Đã thêm "${data.word}" vào sổ`);
+      toast(id ? "Changes saved" : `Added "${data.word}" to your notebook`);
       location.hash = "#/notebook";
     } catch (err) {
       error.textContent = err.message;
@@ -640,12 +640,12 @@ function setupAiFill(root, form, status, submit) {
 
   if (!status?.enabled) {
     button.disabled = true;
-    button.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
-    hint.textContent = "Tính năng AI chưa được bật trên máy chủ. Bạn vẫn có thể tự nhập từ.";
+    button.title = "AI is not enabled on the server (GEMINI_API_KEY is missing)";
+    hint.textContent = "AI is not enabled on the server. You can still enter the word manually.";
   }
   const quota = el("span");
   function showQuota(s) {
-    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt (tra lại từ đã có thì không tính).`;
+    quota.textContent = ` ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} AI requests remaining today (looking up an existing word is free).`;
   }
   if (status?.enabled) {
     hint.append(quota);
@@ -666,17 +666,17 @@ function setupAiFill(root, form, status, submit) {
     word = (word ?? form.word.value).trim();
     if (!word) {
       form.word.focus();
-      return show("warn", el("span", { className: "grow", textContent: "Hãy nhập từ tiếng Anh trước." }));
+      return show("warn", el("span", { className: "grow", textContent: "Please enter an English word first." }));
     }
-    if (hasContent() && !confirm("Ghi đè các ô đang có bằng gợi ý của AI?")) return;
+    if (hasContent() && !confirm("Overwrite the existing fields with AI suggestions?")) return;
 
     controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
-    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Cancel" });
     cancel.addEventListener("click", () => controller.abort());
     show("", el("span", { className: "spinner", ariaHidden: "true" }),
-      el("span", { className: "grow", textContent: `AI đang tra "${word}"… thường mất vài giây.` }), cancel);
+      el("span", { className: "grow", textContent: `AI is looking up "${word}"… this usually takes a few seconds.` }), cancel);
     button.disabled = submit.disabled = true;
     root.querySelector("[data-form]").setAttribute("aria-busy", "true");
     try {
@@ -685,9 +685,9 @@ function setupAiFill(root, form, status, submit) {
       });
       const r = body.result;
       if (!r.is_english_word) {
-        const parts = [el("span", { className: "grow", textContent: `Không tìm thấy từ tiếng Anh "${word}".` })];
+        const parts = [el("span", { className: "grow", textContent: `Could not find the English word "${word}".` })];
         if (r.suggestion) {
-          const retry = el("button", { type: "button", className: "btn small", textContent: `Có phải "${r.suggestion}"?` });
+          const retry = el("button", { type: "button", className: "btn small", textContent: `Did you mean "${r.suggestion}"?` });
           retry.addEventListener("click", () => { form.word.value = r.suggestion; run(r.suggestion); });
           parts.push(retry);
         }
@@ -711,14 +711,14 @@ function setupAiFill(root, form, status, submit) {
         if (field.name !== "word" && field.value) field.classList.add("ai-filled");
       }
       show("", el("span", { className: "grow" },
-        el("strong", { textContent: "✨ AI đã điền thông tin. " }),
-        "Hãy xem lại và sửa nếu cần trước khi lưu.",
-        body.cached ? el("span", { className: "muted", textContent: " (lấy từ bộ nhớ, không tốn lượt)" }) : ""));
+        el("strong", { textContent: "✨ AI filled in the information. " }),
+        "Review and edit it as needed before saving.",
+        body.cached ? el("span", { className: "muted", textContent: " (from cache, no request used)" }) : ""));
       form.meaning_vi.focus();
     } catch (err) {
-      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
-      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
-      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
+      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
+      const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => run());
       show("error", el("span", { className: "grow", textContent: message }), again);
     } finally {
@@ -756,13 +756,13 @@ async function chatPage() {
     return showError(body, err);
   }
   if (!words.length) {
-    return body.replaceChildren(el("p", { className: "card empty" }, "Sổ của bạn chưa có từ nào. ",
-      el("a", { href: "#/notebook/new", textContent: "Thêm từ" }), " rồi quay lại luyện hội thoại nhé."));
+    return body.replaceChildren(el("p", { className: "card empty" }, "Your notebook is empty. ",
+      el("a", { href: "#/notebook/new", textContent: "Add a word" }), " and come back to practice the conversation."));
   }
   const aiOn = Boolean(status?.enabled);
   if (!aiOn) {
     send.disabled = form.message.disabled = true;
-    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa trò chuyện được.";
+    hint.textContent = "AI is not enabled on the server, so conversation practice is unavailable.";
   }
 
   let targets = [];
@@ -783,7 +783,7 @@ async function chatPage() {
     for (const word of list) used.add(word);
     for (const chip of chipsBox.children) chip.classList.toggle("used", used.has(chip.dataset.word));
     const n = targets.filter((w) => used.has(w.word.toLowerCase())).length;
-    $(root, "data-chat-score").textContent = `Bạn đã dùng đúng ${n}/${targets.length} từ`;
+    $(root, "data-chat-score").textContent = `Words used correctly: ${n}/${targets.length}`;
   }
 
   function bubble(role, text) {
@@ -795,9 +795,9 @@ async function chatPage() {
   function tutorBubble(r) {
     const b = bubble("tutor", r.reply);
     const vi = el("p", { className: "vi", textContent: r.reply_vi, hidden: true });
-    const toggle = el("button", { type: "button", className: "btn small ghost", textContent: "Dịch" });
-    toggle.addEventListener("click", () => { vi.hidden = !vi.hidden; toggle.textContent = vi.hidden ? "Dịch" : "Ẩn dịch"; });
-    const sound = iconButton("speak", "Nghe");
+    const toggle = el("button", { type: "button", className: "btn small ghost", textContent: "Translate" });
+    toggle.addEventListener("click", () => { vi.hidden = !vi.hidden; toggle.textContent = vi.hidden ? "Translate" : "Hide translation"; });
+    const sound = iconButton("speak", "Listen");
     sound.addEventListener("click", () => speak(r.reply));
     b.append(vi, el("div", { className: "bubble-tools" }, sound, toggle));
   }
@@ -812,7 +812,7 @@ async function chatPage() {
   async function turn(learnerBubble) {
     busy = true;
     send.disabled = true;
-    const typing = el("div", { className: "bubble tutor typing" }, el("span", { className: "spinner", ariaHidden: "true" }), " Đang trả lời…");
+    const typing = el("div", { className: "bubble tutor typing" }, el("span", { className: "spinner", ariaHidden: "true" }), " Replying…");
     log.append(typing);
     typing.scrollIntoView({ behavior: "smooth", block: "end" });
     const controller = new AbortController();
@@ -831,8 +831,8 @@ async function chatPage() {
       tutorBubble(r);
     } catch (err) {
       typing.remove();
-      const message = err.name === "AbortError" ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
-      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      const message = err.name === "AbortError" ? "AI took too long to respond. Please try again." : err.message;
+      const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       const box = el("div", { className: "ai-panel error" }, el("span", { className: "grow", textContent: message }), again);
       again.addEventListener("click", () => { box.remove(); turn(learnerBubble); });
       log.append(box);
@@ -842,7 +842,7 @@ async function chatPage() {
       send.disabled = !aiOn;
       form.message.focus();
       api("/ai/status").then((s) => {
-        hint.textContent = `Mỗi tin nhắn tốn 1 lượt AI. Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt.`;
+        hint.textContent = `Each message uses 1 AI request. ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} requests remaining today.`;
       }).catch(() => {});
     }
   }
@@ -867,7 +867,7 @@ async function chatPage() {
     if (e.key === "Enter" && !e.shiftKey && !e.isComposing) { e.preventDefault(); form.requestSubmit(); }
   });
   $(root, "data-new-words").addEventListener("click", () => {
-    if (history.length > 1 && !confirm("Bắt đầu cuộc trò chuyện mới với bộ từ khác?")) return;
+    if (history.length > 1 && !confirm("Start a new conversation with a different set of words?")) return;
     restart();
   });
   restart();
@@ -877,8 +877,8 @@ async function chatPage() {
 // POST /api/ai/suggest-words returns new words (not in my notebook yet); the ones the learner
 // ticks are saved with the normal POST /api/notebook/words.
 const LEVELS = {
-  A1: "A1 — mới bắt đầu", A2: "A2 — sơ cấp", B1: "B1 — trung cấp",
-  B2: "B2 — trên trung cấp", C1: "C1 — nâng cao",
+  A1: "A1 — beginner", A2: "A2 — elementary", B1: "B1 — intermediate",
+  B2: "B2 — upper-intermediate", C1: "C1 — advanced",
 };
 
 async function suggestPage(params) {
@@ -907,7 +907,7 @@ async function suggestPage(params) {
 
   const quota = el("span");
   function showQuota(s) {
-    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt AI.`;
+    quota.textContent = ` ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} AI requests remaining today.`;
   }
   const aiOn = Boolean(status?.enabled);
   if (aiOn) {
@@ -915,8 +915,8 @@ async function suggestPage(params) {
     showQuota(status);
   } else {
     submit.disabled = true;
-    submit.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
-    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa gợi ý được.";
+    submit.title = "AI is not enabled on the server (GEMINI_API_KEY is missing)";
+    hint.textContent = "AI is not enabled on the server, so suggestions are unavailable.";
   }
 
   let shown = [];   // every word shown for the current topic + level ("Gợi ý thêm" skips them)
@@ -933,14 +933,14 @@ async function suggestPage(params) {
   function updateAdd() {
     const n = selected().length;
     addBtn.disabled = n === 0;
-    addBtn.textContent = n ? `+ Thêm ${n} từ vào sổ` : "Chọn từ để thêm vào sổ";
+    addBtn.textContent = n ? `+ Add ${n} word${n === 1 ? "" : "s"} to notebook` : "Select words to add";
   }
 
   function item(w) {
     const box = el("input", { type: "checkbox" });
     box.word = w;
     box.addEventListener("change", updateAdd);
-    const sound = iconButton("speak", "Nghe phát âm");
+    const sound = iconButton("speak", "Listen");
     sound.addEventListener("click", (e) => { e.preventDefault(); speak(w.word); });
     const head = el("div", { className: "word-head nb" },
       el("span", { className: "w", textContent: w.word, lang: "en" }));
@@ -968,10 +968,10 @@ async function suggestPage(params) {
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
-    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Cancel" });
     cancel.addEventListener("click", () => controller.abort());
     show("", el("span", { className: "spinner", ariaHidden: "true" }),
-      el("span", { className: "grow", textContent: "AI đang chọn từ… thường mất vài giây." }), cancel);
+      el("span", { className: "grow", textContent: "AI is selecting words… this usually takes a few seconds." }), cancel);
     submit.disabled = moreBtn.disabled = true;
     try {
       const res = await api("/ai/suggest-words", {
@@ -982,17 +982,17 @@ async function suggestPage(params) {
       shown.push(...res.words.map((w) => w.word));
       list.append(...res.words.map(item));
       if (!res.words.length) {
-        show("warn", el("span", { className: "grow", textContent: "AI chưa tìm thêm được từ mới cho chủ đề này. Thử trình độ khác nhé." }));
+        show("warn", el("span", { className: "grow", textContent: "AI could not find more new words for this topic. Try another level." }));
       } else {
         panel.hidden = true;
       }
       actions.hidden = !list.children.length;
       updateAdd();
     } catch (err) {
-      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
-      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
+      const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => run(more));
-      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
       show("error", el("span", { className: "grow", textContent: message }), again);
     } finally {
       clearTimeout(timer);
@@ -1030,7 +1030,7 @@ async function suggestPage(params) {
       box.disabled = true;
       box.closest("li").classList.add("added");
     }
-    if (added) toast(`Đã thêm ${added} từ vào sổ`);
+    if (added) toast(`Added ${added} word${added === 1 ? "" : "s"} to your notebook`);
     if (failed.length) show("error", el("span", { className: "grow", textContent: failed.join(" · ") }));
     updateAdd();
   });
@@ -1039,13 +1039,13 @@ async function suggestPage(params) {
 // ---------- Đặt câu (AI chấm câu tự đặt) ----------
 // POST /api/ai/check-sentence {word_id, sentence}: the server looks the word up in my notebook.
 const SENTENCE_VERDICTS = {
-  correct: { icon: "✅", label: "Câu đúng" },
-  minor_issues: { icon: "🟡", label: "Gần đúng, còn lỗi nhỏ" },
-  incorrect: { icon: "❌", label: "Câu chưa đúng" },
+  correct: { icon: "✅", label: "Correct sentence" },
+  minor_issues: { icon: "🟡", label: "Almost correct, with minor issues" },
+  incorrect: { icon: "❌", label: "Incorrect sentence" },
 };
 const ERROR_TYPES = {
-  grammar: "Ngữ pháp", word_usage: "Cách dùng từ", spelling: "Chính tả",
-  word_choice: "Chọn từ", punctuation: "Dấu câu", missing_word: "Thiếu từ",
+  grammar: "Grammar", word_usage: "Word usage", spelling: "Spelling",
+  word_choice: "Word choice", punctuation: "Punctuation", missing_word: "Missing word",
 };
 
 async function sentencePage(params) {
@@ -1066,8 +1066,8 @@ async function sentencePage(params) {
     return showError(body, err);
   }
   if (!words.length) {
-    return body.replaceChildren(el("p", { className: "card empty" }, "Sổ của bạn chưa có từ nào. ",
-      el("a", { href: "#/notebook/new", textContent: "Thêm từ" }), " rồi quay lại đặt câu nhé."));
+    return body.replaceChildren(el("p", { className: "card empty" }, "Your notebook is empty. ",
+      el("a", { href: "#/notebook/new", textContent: "Add a word" }), " and come back to write a sentence."));
   }
 
   const sorted = [...words].sort((a, b) => a.word.localeCompare(b.word));
@@ -1078,7 +1078,7 @@ async function sentencePage(params) {
 
   const quota = el("span");
   function showQuota(s) {
-    quota.textContent = ` Hôm nay còn ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} lượt AI (câu đã chấm rồi thì không tính).`;
+    quota.textContent = ` ${Math.max(0, s.limit_per_day - s.used_today)}/${s.limit_per_day} AI requests remaining today (graded sentences are free).`;
   }
   const aiOn = Boolean(status?.enabled);
   if (aiOn) {
@@ -1086,21 +1086,21 @@ async function sentencePage(params) {
     showQuota(status);
   } else {
     submit.disabled = true;
-    submit.title = "Máy chủ chưa bật AI (thiếu GEMINI_API_KEY)";
-    hint.textContent = "Tính năng AI chưa được bật trên máy chủ nên chưa chấm câu được.";
+    submit.title = "AI is not enabled on the server (GEMINI_API_KEY is missing)";
+    hint.textContent = "AI is not enabled on the server, so sentences cannot be graded.";
   }
 
   const current = () => words.find((w) => String(w.id) === select.value);
   function showWord() {
     const w = current();
-    const sound = iconButton("speak", "Nghe phát âm");
+    const sound = iconButton("speak", "Listen");
     sound.addEventListener("click", () => speak(w.word));
     const head = el("div", { className: "word-head nb" }, el("span", { className: "w", textContent: w.word, lang: "en" }));
     if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
     head.append(posBadge(w.part_of_speech), sound);
     card.replaceChildren(head, el("div", { className: "meaning", textContent: w.meaning_vi }));
-    if (w.examples[0]) card.append(el("p", { className: "ex", textContent: `vd: ${w.examples[0].en}`, lang: "en" }));
-    form.sentence.placeholder = `Viết một câu tiếng Anh có từ "${w.word}"…`;
+    if (w.examples[0]) card.append(el("p", { className: "ex", textContent: `Example: ${w.examples[0].en}`, lang: "en" }));
+    form.sentence.placeholder = `Write an English sentence using "${w.word}"…`;
     history.replaceState(null, "", `#/notebook/sentence?word=${w.id}`);
   }
   function reset() {
@@ -1128,7 +1128,7 @@ async function sentencePage(params) {
   }
 
   function line(label, text) {
-    const sound = iconButton("speak", "Nghe câu này");
+    const sound = iconButton("speak", "Listen to this sentence");
     sound.addEventListener("click", () => speak(text));
     return el("div", { className: "sentence-line" },
       el("span", { className: "chips-label", textContent: label }),
@@ -1143,7 +1143,7 @@ async function sentencePage(params) {
     ];
     if (!r.uses_word) {
       nodes.push(el("p", { className: "ai-panel warn",
-        textContent: `Câu của bạn chưa dùng từ "${current().word}". Hãy viết lại câu có từ này.` }));
+        textContent: `Your sentence does not use "${current().word}". Rewrite it using this word.` }));
     }
     if (r.errors.length) {
       nodes.push(el("ul", { className: "sentence-errors" }, ...r.errors.map((e) => el("li", {},
@@ -1152,12 +1152,12 @@ async function sentencePage(params) {
           e.excerpt ? el("q", { className: "excerpt", textContent: e.excerpt, lang: "en" }) : ""),
         el("span", { textContent: e.explanation_vi })))));
     }
-    if (r.verdict !== "correct") nodes.push(line("Câu đã sửa", r.corrected));
-    if (r.better_version) nodes.push(line("Cách nói hay hơn", r.better_version));
-    const again = el("button", { type: "button", className: "btn", textContent: "Viết câu khác" });
+    if (r.verdict !== "correct") nodes.push(line("Corrected sentence", r.corrected));
+    if (r.better_version) nodes.push(line("Better wording", r.better_version));
+    const again = el("button", { type: "button", className: "btn", textContent: "Write another sentence" });
     again.addEventListener("click", reset);
     nodes.push(el("div", { className: "row end" },
-      cached ? el("span", { className: "muted small", textContent: "Kết quả lấy từ bộ nhớ, không tốn lượt." }) : "",
+      cached ? el("span", { className: "muted small", textContent: "Result from cache; no request used." }) : "",
       again));
     result.replaceChildren(...nodes);
     result.hidden = false;
@@ -1170,15 +1170,15 @@ async function sentencePage(params) {
     const sentence = form.sentence.value.trim();
     if (sentence.length < 3) {
       form.sentence.focus();
-      return show("warn", el("span", { className: "grow", textContent: "Hãy viết một câu tiếng Anh." }));
+      return show("warn", el("span", { className: "grow", textContent: "Please write an English sentence." }));
     }
     const controller = new AbortController();
     let timedOut = false;
     const timer = setTimeout(() => { timedOut = true; controller.abort(); }, AI_TIMEOUT_MS);
-    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Huỷ" });
+    const cancel = el("button", { type: "button", className: "btn small ghost", textContent: "Cancel" });
     cancel.addEventListener("click", () => controller.abort());
     show("", el("span", { className: "spinner", ariaHidden: "true" }),
-      el("span", { className: "grow", textContent: "AI đang chấm câu… thường mất vài giây." }), cancel);
+      el("span", { className: "grow", textContent: "AI is grading your sentence… this usually takes a few seconds." }), cancel);
     result.hidden = true;
     submit.disabled = select.disabled = true;
     form.setAttribute("aria-busy", "true");
@@ -1191,10 +1191,10 @@ async function sentencePage(params) {
       panel.hidden = true;
       renderResult(res.result, res.cached);
     } catch (err) {
-      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Đã huỷ." }));
-      const again = el("button", { type: "button", className: "btn small", textContent: "Thử lại" });
+      if (err.name === "AbortError" && !timedOut) return show("warn", el("span", { className: "grow", textContent: "Cancelled." }));
+      const again = el("button", { type: "button", className: "btn small", textContent: "Try again" });
       again.addEventListener("click", () => form.requestSubmit());
-      const message = timedOut ? "AI phản hồi quá lâu, vui lòng thử lại." : err.message;
+      const message = timedOut ? "AI took too long to respond. Please try again." : err.message;
       show("error", el("span", { className: "grow", textContent: message }), again);
     } finally {
       clearTimeout(timer);
@@ -1566,7 +1566,7 @@ async function quizPage() {
     const form = el("form", { className: "quiz-form card" });
     form.append(el("p", {
       className: "muted",
-      textContent: `${quiz.questions.length} câu · Đáp án sẽ được chấm sau khi nộp.`,
+      textContent: `${quiz.questions.length} questions · Answers will be graded after submission.`,
     }));
     for (const question of quiz.questions) {
       const field = el("fieldset", { className: "quiz-question" });
@@ -1583,12 +1583,12 @@ async function quizPage() {
       } else {
         field.append(el("input", {
           type: "text", name: `q-${question.id}`, required: true, maxLength: 300,
-          autocomplete: "off", placeholder: "Điền đáp án...",
+          autocomplete: "off", placeholder: "Enter your answer...",
         }));
       }
       form.append(field);
     }
-    form.append(el("button", { className: "btn primary", type: "submit", textContent: "Nộp bài" }));
+    form.append(el("button", { className: "btn primary", type: "submit", textContent: "Submit quiz" }));
     form.addEventListener("submit", submitQuiz);
     area.replaceChildren(form);
   }
@@ -1612,7 +1612,7 @@ async function quizPage() {
       });
       const report = el("div", { className: "card quiz-results" });
       report.append(
-        el("h2", { textContent: `Kết quả: ${result.score}/${result.total}` }),
+        el("h2", { textContent: `Result: ${result.score}/${result.total}` }),
       );
       for (const question of result.questions) {
         report.append(el("article", {
@@ -1620,11 +1620,11 @@ async function quizPage() {
         },
         el("strong", { textContent: `${question.id}. ${question.prompt}` }),
         el("p", { textContent: question.correct
-          ? `Đúng: ${question.expected}`
-          : `Bạn chọn: ${question.answer || "—"} · Đáp án: ${question.expected}` })));
+          ? `Correct: ${question.expected}`
+          : `Your answer: ${question.answer || "—"} · Correct answer: ${question.expected}` })));
       }
       report.append(el("button", {
-        className: "btn primary", type: "button", textContent: "Làm quiz mới",
+        className: "btn primary", type: "button", textContent: "Start a new quiz",
       }));
       report.lastChild.addEventListener("click", () => start.requestSubmit());
       area.replaceChildren(report);
@@ -1651,22 +1651,22 @@ async function srsPage() {
   let index = 0;
 
   function render() {
-    count.textContent = `${Math.max(0, cards.length - index)} từ cần ôn`;
+    count.textContent = `${Math.max(0, cards.length - index)} words to review`;
     if (index >= cards.length) {
       card.replaceChildren(el("div", { className: "card empty" },
-        el("p", { textContent: "Bạn đã ôn hết các từ đến hạn hôm nay. Tốt lắm!" }),
-        el("a", { className: "btn", href: "#/notebook", textContent: "Về sổ của tôi" })));
+        el("p", { textContent: "You have reviewed all words due today. Great job!" }),
+        el("a", { className: "btn", href: "#/notebook", textContent: "Back to my notebook" })));
       return;
     }
     const word = cards[index];
     const panel = el("article", { className: "card srs-card" },
-      el("p", { className: "muted", textContent: `Từ ${index + 1}/${cards.length}` }),
+      el("p", { className: "muted", textContent: `Word ${index + 1}/${cards.length}` }),
       el("h2", { className: "flash-word", textContent: word.word }));
     if (word.part_of_speech) {
       panel.append(el("span", { className: "badge", textContent: word.part_of_speech }));
     }
     const reveal = el("button", {
-      className: "btn primary", type: "button", textContent: "Hiện nghĩa",
+      className: "btn primary", type: "button", textContent: "Show meaning",
     });
     const answer = el("div", { className: "srs-answer", hidden: true },
       el("h3", { textContent: word.meaning_vi }));
@@ -1678,7 +1678,7 @@ async function srsPage() {
     }
     const feedback = el("p", { className: "muted", role: "status" });
     const ratings = el("div", { className: "srs-ratings", hidden: true });
-    const labels = ["Quên", "Rất khó", "Khó", "Tạm nhớ", "Nhớ", "Dễ"];
+    const labels = ["Forgot", "Very hard", "Hard", "Somewhat", "Remembered", "Easy"];
     labels.forEach((label, quality) => {
       const button = el("button", {
         className: "btn small", type: "button", textContent: `${label} (${quality})`,
@@ -1704,19 +1704,19 @@ async function srsPage() {
         });
         const dueDate = new Date(`${scheduled.next_review}T00:00:00+07:00`);
         feedback.textContent =
-          `Đã lưu · mức ${scheduled.level}/5 · ôn lại ${dueDate.toLocaleDateString("vi-VN")}`;
+          `Saved · level ${scheduled.level}/5 · review on ${dueDate.toLocaleDateString("en-US")}`;
         if (quality < 3) {
-          feedback.textContent += " · Đang tạo mẹo ghi nhớ...";
+          feedback.textContent += " · Creating a memory tip...";
           try {
             const tip = await api(`/srs/words/${word.id}/mnemonic`, { method: "POST" });
             feedback.textContent += ` ${tip.mnemonic}`;
           } catch (err) {
-            feedback.textContent = `Đã lưu lịch ôn nhưng chưa tạo được mẹo: ${err.message}`;
+            feedback.textContent = `Review schedule saved, but the memory tip could not be created: ${err.message}`;
           }
         }
         index++;
         const next = el("button", {
-          className: "btn primary", type: "button", textContent: "Từ tiếp theo",
+          className: "btn primary", type: "button", textContent: "Next word",
         });
         next.addEventListener("click", render);
         panel.append(next);

@@ -46,14 +46,14 @@ def reserve(repo, user_id: int, feature: str) -> int:
     if repo.usage_since(user_id, now - timedelta(minutes=1)) >= per_minute:
         raise HTTPException(
             status_code=429,
-            detail=f"Bạn gửi yêu cầu AI hơi nhanh (tối đa {per_minute} lần/phút)."
-            " Đợi 1 phút rồi thử lại.",
+            detail=f"You are sending AI requests too quickly (maximum {per_minute} per minute)."
+            " Wait one minute and try again.",
             headers={"Retry-After": "60"},
         )
     if repo.usage_since(user_id, start_of_day(now)) >= per_day:
         raise HTTPException(
             status_code=429,
-            detail=f"Bạn đã dùng hết {per_day} lượt AI hôm nay. Hãy quay lại vào ngày mai nhé.",
+            detail=f"You have used all {per_day} AI requests for today. Please come back tomorrow.",
         )
     usage_id = repo.add_usage(user_id, feature)
     repo.commit()
