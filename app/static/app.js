@@ -3,6 +3,7 @@
 //   #/            list (topics, search, filter by part of speech, sort, edit, delete)
 //   #/admin-login sign-in form for admin accounts only (checked by the server)
 //   #/progress    the logged-in user's own progress
+//   #/practice    every practice mode (review today, quiz, sentence, chat, word bank)
 //   #/admin       admins only: manage words (?tab=learners: learners' progress)
 //   #/admin/new   admins only: add a word     #/admin/edit/{id}   edit a word
 //   #/notebook    my own notebook (Vietnamese UI)
@@ -99,10 +100,9 @@ const ICONS = {
   trash: '<path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/>',
   save: '<path d="M6 3h12v18l-6-4-6 4z"/><path d="M12 7v6M9 10h6"/>',
   saved: '<path d="M6 3h12v18l-6-4-6 4z" fill="currentColor"/>',
-  write: '<path d="M4 20h4L19 9l-4-4L4 16z"/><path d="M14 20h6"/>',
 };
 function iconButton(icon, label, extraClass = "") {
-  const tag = icon === "edit" || icon === "write" ? "a" : "button";
+  const tag = icon === "edit" ? "a" : "button";
   const btn = el(tag, { className: `icon-btn ${extraClass}`, title: label });
   btn.setAttribute("aria-label", label);
   btn.innerHTML = `<svg viewBox="0 0 24 24" aria-hidden="true">${ICONS[icon]}</svg>`;
@@ -528,8 +528,6 @@ function notebookItem(w, onDeleted) {
   const li = el("li", { className: "card word-item" });
   const sound = iconButton("speak", "Listen");
   sound.addEventListener("click", () => speak(w.word));
-  const write = iconButton("write", "Write a sentence with this word");
-  write.href = `#/notebook/sentence?word=${w.id}`;
   const edit = iconButton("edit", "Edit");
   edit.href = `#/notebook/edit/${w.id}`;
   const del = iconButton("trash", "Remove from notebook", "danger");
@@ -547,25 +545,46 @@ function notebookItem(w, onDeleted) {
   const head = el("div", { className: "word-head nb" },
     el("span", { className: "w", textContent: w.word, lang: "en" }));
   if (w.ipa) head.append(el("span", { className: "ipa", textContent: w.ipa }));
-  head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, write, edit, del));
+  head.append(posBadge(w.part_of_speech), el("div", { className: "actions" }, sound, edit, del));
   li.append(head, el("div", { className: "meaning", textContent: w.meaning_vi, lang: "vi" }));
-  if (w.definition_en) li.append(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
-  if (w.examples.length) {
-    li.append(el("ul", { className: "examples" }, ...w.examples.map((ex) => el("li", {},
-      el("span", { className: "ex", textContent: ex.en, lang: "en" }),
-      ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi, lang: "vi" }) : ""))));
-  }
+  const exampleItem = (ex) => el("li", {},
+    el("span", { className: "ex", textContent: ex.en, lang: "en" }),
+    ex.vi ? el("span", { className: "ex-vi", textContent: ex.vi, lang: "vi" }) : "");
+  if (w.examples.length) li.append(el("ul", { className: "examples" }, exampleItem(w.examples[0])));
+
+  // Everything else stays folded until asked for, so the list is quick to scan.
+  const more = [];
+  if (w.definition_en) more.push(el("p", { className: "def", textContent: w.definition_en, lang: "en" }));
+  if (w.examples.length > 1) more.push(el("ul", { className: "examples" }, ...w.examples.slice(1).map(exampleItem)));
   for (const node of [
     chips("Synonyms", w.synonyms),
     chips("Antonyms", w.antonyms, "anti"),
     chips("Collocations", w.collocations),
-  ]) if (node) li.append(node);
-  if (w.usage_note) li.append(el("p", { className: "note", textContent: w.usage_note }));
+  ]) if (node) more.push(node);
+  if (w.usage_note) more.push(el("p", { className: "note", textContent: w.usage_note }));
+
   const foot = el("div", { className: "word-foot" });
   const topic = topicById(w.topic_id);
   if (topic) foot.append(el("span", { className: "topic-tag", textContent: `${topic.icon} ${topic.name}` }));
   if (SOURCE_LABELS[w.source]) foot.append(el("span", { className: "source", textContent: SOURCE_LABELS[w.source] }));
-  if (foot.childNodes.length) li.append(foot);
+  const tools = el("div", { className: "word-tools" },
+    el("a", { className: "btn small ghost", href: `#/notebook/sentence?word=${w.id}`, textContent: "✍️ Write a sentence" }));
+  if (more.length) {
+    const details = el("div", { className: "word-details", id: `nb-details-${w.id}` }, ...more);
+    details.hidden = true;
+    const toggle = el("button", { type: "button", className: "btn small ghost", textContent: "Details ▾" });
+    toggle.setAttribute("aria-expanded", "false");
+    toggle.setAttribute("aria-controls", details.id);
+    toggle.addEventListener("click", () => {
+      details.hidden = !details.hidden;
+      toggle.setAttribute("aria-expanded", String(!details.hidden));
+      toggle.textContent = details.hidden ? "Details ▾" : "Hide details ▴";
+    });
+    tools.append(toggle);
+    li.append(details);
+  }
+  foot.append(tools);
+  li.append(foot);
   return li;
 }
 
@@ -1637,6 +1656,54 @@ async function quizPage() {
   }
 }
 
+// ---------- Practice hub ----------
+async function practicePage() {
+  const root = mount("tpl-practice");
+  const grid = $(root, "data-modes");
+  grid.replaceChildren(...Array.from({ length: 5 }, () => el("div", { className: "card skeleton" })));
+  // Counts make the cards useful at a glance; the page still works if they fail.
+  const [today, mine] = await Promise.all([
+    api("/srs/today").catch(() => null),
+    api("/notebook/words").catch(() => null),
+  ]);
+  const due = today ? today.cards.length : null;
+  const words = mine ? mine.length : null;
+  const needWords = words === 0 ? "Add words to your notebook first" : null;
+  const modes = [
+    {
+      href: "#/srs", icon: "🔁", title: "Review today",
+      text: "Spaced repetition: the words you are about to forget, at the right time.",
+      meta: due === null ? "" : due ? `${due} ${due === 1 ? "word" : "words"} due` : "Nothing due today",
+      hot: due > 0,
+    },
+    {
+      href: "#/quiz", icon: "📝", title: "Notebook quiz",
+      text: "Multiple choice, fill in the blank and meanings, from your own words.",
+      meta: needWords || (words ? `${words} words in your notebook` : ""),
+    },
+    {
+      href: "#/notebook/sentence", icon: "✍️", title: "Write a sentence",
+      text: "Use a word in your own sentence; the AI explains mistakes in Vietnamese.",
+      meta: needWords || "Uses 1 AI request",
+    },
+    {
+      href: "#/notebook/chat", icon: "💬", title: "Conversation practice",
+      text: "Chat with an AI tutor that keeps bringing back your notebook words.",
+      meta: needWords || "Uses 1 AI request per message",
+    },
+    {
+      href: "#/review", icon: "🃏", title: "Word bank flashcards",
+      text: "Type the meaning of words from the shared bank, by topic or at random.",
+      meta: "English ↔ Vietnamese",
+    },
+  ];
+  grid.replaceChildren(...modes.map((m) => el("a", { className: `card mode${m.hot ? " hot" : ""}`, href: m.href },
+    el("span", { className: "mode-icon", textContent: m.icon, ariaHidden: "true" }),
+    el("span", { className: "mode-title", textContent: m.title }),
+    el("span", { className: "mode-text muted", textContent: m.text }),
+    m.meta ? el("span", { className: "mode-meta", textContent: m.meta }) : "")));
+}
+
 // ---------- Spaced review ----------
 async function srsPage() {
   const root = mount("tpl-srs");
@@ -2001,24 +2068,18 @@ async function route() {
   else if (edit) { page = "admin"; formPage(Number(edit[1])); }
   else if (path === "/notebook") { page = "notebook"; notebookPage(params); }
   else if (path === "/notebook/new") { page = "notebook"; notebookFormPage(null); }
-  else if (path === "/notebook/sentence") { page = "notebook"; sentencePage(params); }
+  else if (path === "/practice") { page = "practice"; practicePage(); }
+  else if (path === "/notebook/sentence") { page = "practice"; sentencePage(params); }
   else if (path === "/notebook/suggest") { page = "notebook"; suggestPage(params); }
-  else if (path === "/notebook/chat") { page = "notebook"; chatPage(); }
+  else if (path === "/notebook/chat") { page = "practice"; chatPage(); }
   else if (editMine) { page = "notebook"; notebookFormPage(Number(editMine[1])); }
   else if (path === "/progress") { page = "progress"; progressPage(); }
-  else if (path === "/quiz") { page = "quiz"; quizPage(); }
-  else if (path === "/srs") { page = "srs"; srsPage(); }
-  else if (path === "/review") { page = "review"; reviewPage(params.get("topic")); }
+  else if (path === "/quiz") { page = "practice"; quizPage(); }
+  else if (path === "/srs") { page = "practice"; srsPage(); }
+  else if (path === "/review") { page = "practice"; reviewPage(params.get("topic")); }
   else listPage(params);
   for (const a of document.querySelectorAll("[data-nav]")) {
     a.classList.toggle("active", a.dataset.nav === page);
-  }
-  // On phones the menu scrolls sideways: keep the current page's link in view.
-  const nav = document.querySelector("[data-nav-links]");
-  const active = nav.querySelector("a.active");
-  if (active && nav.scrollWidth > nav.clientWidth) {
-    const left = active.offsetLeft - nav.offsetLeft; // both measured from the sticky topbar
-    nav.scrollLeft = left - (nav.clientWidth - active.offsetWidth) / 2;
   }
   window.scrollTo(0, 0);
 }
