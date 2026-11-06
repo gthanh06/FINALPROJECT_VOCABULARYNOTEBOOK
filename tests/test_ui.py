@@ -14,7 +14,7 @@ def test_home_serves_the_ui():
         'id="tpl-list"', 'id="tpl-form"', 'id="tpl-review"',
         'id="tpl-notebook"', 'id="tpl-notebook-form"', 'id="tpl-sentence"',
         'id="tpl-suggest"', 'id="tpl-chat"',
-        'id="tpl-quiz"', 'id="tpl-srs"',
+        'id="tpl-quiz"', 'id="tpl-srs"', 'id="tpl-practice"',
     ):
         assert page in r.text
 

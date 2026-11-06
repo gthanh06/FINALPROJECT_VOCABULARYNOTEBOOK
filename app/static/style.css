@@ -85,6 +85,7 @@ h1 { font-size: 1.6rem; letter-spacing: -0.02em; margin: 0 0 4px; }
 .topbar nav a { padding: 6px 14px; border-radius: 8px; color: var(--muted); font-weight: 500; font-size: 0.92rem; white-space: nowrap; }
 .topbar nav a:hover { color: var(--text); }
 .topbar nav a.active { background: var(--surface); color: var(--text); box-shadow: var(--shadow); }
+.topbar nav .nav-icon { display: none; }
 
 main { max-width: 1080px; margin: 0 auto; padding: 28px 16px 64px; }
 .narrow { max-width: 680px; margin: 0 auto; }
@@ -126,6 +127,10 @@ input, select, textarea {
 }
 input:focus, select:focus, textarea:focus {
   outline: none; border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-soft);
+}
+/* Keyboard users see where they are; a mouse click does not draw the ring. */
+a:focus-visible, button:focus-visible, summary:focus-visible, [tabindex]:focus-visible {
+  outline: 2px solid var(--primary); outline-offset: 2px;
 }
 textarea { resize: vertical; }
 
@@ -225,6 +230,22 @@ textarea { resize: vertical; }
 .word-foot .topic-tag { margin: 0; }
 .source { font-size: 0.75rem; color: var(--muted); margin-left: auto; }
 .save-btn.saved { color: var(--primary); }
+/* Notebook card: details folded, tools at the bottom. */
+.word-details { display: grid; gap: 6px; }
+.word-tools { display: flex; gap: 4px; margin-left: auto; }
+.word-tools .btn { white-space: nowrap; }
+
+/* ---------- Practice hub ---------- */
+.modes { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(280px, 100%), 1fr)); gap: 12px; }
+.mode { display: grid; gap: 6px; align-content: start; color: var(--text); min-height: 150px; transition: box-shadow 0.15s, transform 0.15s; }
+.mode:hover { box-shadow: var(--shadow-hover); transform: translateY(-1px); }
+.mode-icon { font-size: 1.6rem; line-height: 1; }
+.mode-title { font-weight: 700; font-size: 1.05rem; }
+.mode-text { font-size: 0.9rem; }
+.mode-meta { margin-top: auto; font-size: 0.82rem; font-weight: 600; color: var(--muted); }
+.mode.hot { border-color: color-mix(in srgb, var(--primary) 55%, var(--border)); }
+.mode.hot .mode-meta { color: var(--primary); }
+
 .grid-3 { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
 .examples-field { border: 1px solid var(--border); border-radius: 12px; padding: 10px 14px 14px; margin: 0; display: grid; gap: 10px; }
 .examples-field legend { font-weight: 600; font-size: 0.9rem; padding: 0 4px; }
@@ -488,13 +509,24 @@ section > .card h2, .progress-grid h2 { font-size: 1rem; margin: 0 0 4px; }
   .grid-3, .example-row { grid-template-columns: 1fr; }
   .flash-word { font-size: 2rem; }
   .answer-form { flex-direction: column; }
-  /* Phones: the menu gets its own full-width row that scrolls sideways instead of wrapping. */
+  /* Phones: the menu is a tab bar fixed at the bottom of the screen, every item visible. */
   .topbar nav {
-    order: 3; flex-basis: 100%; overflow-x: auto; scrollbar-width: none;
-    scroll-snap-type: x proximity; overscroll-behavior-x: contain;
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 20; border-radius: 0; gap: 0;
+    padding: 4px 4px calc(4px + env(safe-area-inset-bottom));
+    background: var(--surface); border-top: 1px solid var(--border);
   }
-  .topbar nav::-webkit-scrollbar { display: none; }
-  .topbar nav a { padding: 6px 10px; flex: none; scroll-snap-align: start; }
+  .topbar nav a {
+    flex: 1 1 0; min-width: 0; display: grid; justify-items: center; gap: 2px;
+    padding: 6px 2px; font-size: 0.72rem; line-height: 1.2; text-align: center; box-shadow: none;
+  }
+  .topbar nav a span { overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+  .topbar nav a.active { background: var(--primary-soft); color: var(--primary); box-shadow: none; }
+  .topbar nav .nav-icon {
+    display: block; width: 22px; height: 22px; fill: none; stroke: currentColor; stroke-width: 2;
+    stroke-linecap: round; stroke-linejoin: round;
+  }
+  main { padding-bottom: calc(96px + env(safe-area-inset-bottom)); }
+  #toast { bottom: calc(80px + env(safe-area-inset-bottom)); }
   .btn.lg { min-width: 0; flex: 1; }
   .user-name { display: none; }
   .toolbar { flex-wrap: wrap; }
