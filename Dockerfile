@@ -10,6 +10,9 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /srv
 
+# Created before any COPY so this layer is cached and not rebuilt on every code change.
+RUN useradd --create-home --uid 10001 appuser
+
 # Dependencies first so code changes do not reinstall them.
 COPY requirements.txt .
 RUN pip install -r requirements.txt
@@ -18,8 +21,7 @@ COPY app ./app
 COPY migrations ./migrations
 COPY prompts ./prompts
 
-# Do not run as root inside the container.
-RUN useradd --create-home --uid 10001 appuser
+# Do not run as root inside the container (files stay root-owned, so read-only for the app).
 USER appuser
 
 # Render injects PORT; locally it defaults to 8000.
