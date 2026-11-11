@@ -102,9 +102,9 @@ Test không cần database và không cần key: dùng repository giả (`tests/
 
 ## CI/CD và bảo mật
 
-- Mỗi pull request chạy Ruff, pytest, Docker build và Gitleaks trên toàn bộ lịch sử Git (`.github/workflows/ci.yml`). Không merge nếu một job thất bại.
+- Mỗi pull request chạy Ruff, pytest, Docker build và Gitleaks trên toàn bộ lịch sử Git (`.github/workflows/ci.yml`). Một job thất bại chỉ chặn được việc merge khi `main` đã bật branch protection với hai status check bên dưới.
 - Sau khi các job trên thành công khi merge vào `main`, GitHub Actions gọi Render Deploy Hook nếu repository có secret `RENDER_DEPLOY_HOOK_URL` (Settings → Secrets and variables → Actions; URL lấy ở Render → service → Settings → Deploy Hook). Chưa có secret thì bước deploy được bỏ qua và Render tự deploy (`autoDeploy: true`). Chỉ đổi `autoDeploy: false` trong `render.yaml` **sau khi** đã thêm secret, để không deploy hai lần.
-- Nên bật branch protection cho `main` (GitHub → Settings → Branches → Add branch protection rule): yêu cầu pull request, ít nhất 1 approval, các status check `Scan Git history` và `Lint, test, and build`; chặn force-push và xoá nhánh.
+- Cần bật branch protection cho `main` (chủ repo làm) (GitHub → Settings → Branches → Add branch protection rule): yêu cầu pull request, ít nhất 1 approval, các status check `Scan Git history` và `Lint, test, and build`; chặn force-push và xoá nhánh.
 - Không commit `.env`, key hay connection string; cấu hình đọc từ biến môi trường.
 
 ## Deploy lên Render
